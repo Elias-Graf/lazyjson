@@ -88,12 +88,33 @@ func TestSkipWhitespace(t *testing.T) {
 	}
 }
 func TestIntegration(t *testing.T) {
-	_, err := tokenizer.Tokenize(
-		"[{\"key\": {\"values\": [true, false, null, 5000]}}]",
+	toks, err := tokenizer.Tokenize(
+		"[{\"key\": {\"values\": [true, false, null, 50.00]}}]",
 	)
+	exp := []*tokenizer.Token{
+		{Val: "[", Typ: tokenizer.Sep},
+		{Val: "{", Typ: tokenizer.Sep},
+		{Val: "key", Typ: tokenizer.LitStr},
+		{Val: ":", Typ: tokenizer.Oper},
+		{Val: "{", Typ: tokenizer.Sep},
+		{Val: "values", Typ: tokenizer.LitStr},
+		{Val: ":", Typ: tokenizer.Oper},
+		{Val: "[", Typ: tokenizer.Sep},
+		{Val: "true", Typ: tokenizer.LitKey},
+		{Val: ",", Typ: tokenizer.Sep},
+		{Val: "false", Typ: tokenizer.LitKey},
+		{Val: ",", Typ: tokenizer.Sep},
+		{Val: "null", Typ: tokenizer.LitKey},
+		{Val: ",", Typ: tokenizer.Sep},
+		{Val: "50.00", Typ: tokenizer.LitNum},
+		{Val: "]", Typ: tokenizer.Sep},
+		{Val: "}", Typ: tokenizer.Sep},
+		{Val: "}", Typ: tokenizer.Sep},
+		{Val: "]", Typ: tokenizer.Sep},
+	}
 
 	expNoErr(t, err)
-
+	expEquals(t, toks, exp)
 }
 
 func expEquals(t *testing.T, a interface{}, b interface{}) {
