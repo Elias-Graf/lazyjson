@@ -3,7 +3,9 @@ package tokenizer
 type TokenTyp string
 
 const (
-	Punct TokenTyp = "Punctuation"
-	Str   TokenTyp = "String"
-	Num   TokenTyp = "Number"
+	LitKey TokenTyp = "KeywordLiteral"
+	LitNum TokenTyp = "NumberLiteral"
+	LitStr TokenTyp = "StringLiteral"
+	Oper   TokenTyp = "Operator"
+	Sep    TokenTyp = "Separator"
 )
