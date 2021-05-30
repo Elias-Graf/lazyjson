@@ -37,15 +37,15 @@ mod tests {
 
     #[test]
     pub fn consume_false() {
-        consume_and_assert_keyword("false", 0);
+        consume_and_assert_keyword("false");
     }
     #[test]
     pub fn consume_null() {
-        consume_and_assert_keyword("null", 0);
+        consume_and_assert_keyword("null");
     }
     #[test]
     pub fn consume_true() {
-        consume_and_assert_keyword("true", 0);
+        consume_and_assert_keyword("true");
     }
     #[test]
     pub fn consume_at_offset() {
@@ -70,8 +70,9 @@ mod tests {
         assert_eq!(r, e);
     }
 
-    fn consume_and_assert_keyword(val: &str, offset: usize) {
+    fn consume_and_assert_keyword(val: &str) {
         let val = &String::from(val);
+        let r = keyword_literal_consumer(val, 0).unwrap();
         let e = ConsumerResponse {
             cons: val.chars().count(),
             tok: Some(Token {
@@ -79,7 +80,6 @@ mod tests {
                 val: String::from(val),
             }),
         };
-        let r = keyword_literal_consumer(val, offset).unwrap();
 
         assert_eq!(r, e);
     }

@@ -9,5 +9,8 @@ pub use self::keyword_literal_consumer::*;
 mod operator_consumer;
 pub use self::operator_consumer::*;
 
+mod separator_consumer;
+pub use self::separator_consumer::*;
+
 mod token;
 pub use self::token::*;

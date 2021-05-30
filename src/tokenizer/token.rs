@@ -2,6 +2,7 @@
 pub enum TokenType {
     KeywordLiteral,
     Operator,
+    Separator,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
