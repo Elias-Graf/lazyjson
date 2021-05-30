@@ -1,6 +1,7 @@
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum TokenType {
-    KeywordLit,
+    KeywordLiteral,
+    Operator,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
