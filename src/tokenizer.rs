@@ -12,5 +12,8 @@ pub use self::operator_consumer::*;
 mod separator_consumer;
 pub use self::separator_consumer::*;
 
+mod string_literal_consumer;
+pub use self::string_literal_consumer::*;
+
 mod token;
 pub use self::token::*;
