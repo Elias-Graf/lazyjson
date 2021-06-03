@@ -1,11 +1,9 @@
 use super::{error::TokenizationError, ConsumerResponse, Token, TokenType};
 
-// TODO: implement unterminated string detection
-
 pub fn string_literal_consumer(
     inp: &String,
     offset: usize,
-) -> Result<ConsumerResponse, TokenizationError> {
+) -> Result<ConsumerResponse, UnterminatedStringError> {
     // TODO: declare chars as variable
     if inp.chars().nth(offset).unwrap() != '"' {
         return Ok(ConsumerResponse { cons: 0, tok: None });
@@ -14,7 +12,11 @@ pub fn string_literal_consumer(
     let mut cons: usize = 1;
     let mut val = String::new();
 
-    while offset + cons < inp.chars().count() {
+    loop {
+        if offset + cons >= inp.chars().count() {
+            return Err(UnterminatedStringError);
+        }
+
         let c = inp.chars().nth(offset + cons).unwrap();
 
         if c == '\\' {
@@ -43,6 +45,15 @@ pub fn string_literal_consumer(
     })
 }
 
+#[derive(Clone, Debug)]
+pub struct UnterminatedStringError;
+
+impl TokenizationError for UnterminatedStringError {
+    fn kind(&self) -> String {
+        "string not terminated".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -64,9 +75,9 @@ mod tests {
     }
     #[test]
     fn consume_string_with_escaped_quote() {
-        let r = string_literal_consumer(&"\"hello \\\" world".to_string(), 0).unwrap();
+        let r = string_literal_consumer(&"\"hello \\\" world\"".to_string(), 0).unwrap();
         let e = ConsumerResponse {
-            cons: 15,
+            cons: 16,
             tok: Some(Token {
                 typ: TokenType::StringLiteral,
                 val: "hello \" world".to_string(),
@@ -74,6 +85,13 @@ mod tests {
         };
 
         assert_eq!(r, e);
+    }
+    #[test]
+    fn consume_unterminated_string() {
+        let rec = string_literal_consumer(&"\"hello world".to_string(), 0).map_err(|e| e.kind());
+        let exp = Err(UnterminatedStringError.kind());
+
+        assert_eq!(rec, exp);
     }
 
     fn consume_and_assert_string(val: &str) {

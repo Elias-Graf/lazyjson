@@ -1,13 +1,10 @@
-use super::{error::TokenizationError, ConsumerResponse, Token, TokenType};
+use super::{ConsumerResponse, Token, TokenType};
 
 // I would like to use a `HashSet`, but static `HashSet`s are currently not
 // supported.
 static SEPARATORS: &'static [char] = &[',', '[', ']', '{', '}'];
 
-pub fn separator_consumer(
-    inp: &String,
-    offset: usize,
-) -> Result<ConsumerResponse, TokenizationError> {
+pub fn separator_consumer(inp: &String, offset: usize) -> Result<ConsumerResponse, ()> {
     let c = &inp.chars().nth(offset).unwrap();
 
     if SEPARATORS.contains(c) {
