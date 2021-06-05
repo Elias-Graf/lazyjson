@@ -6,6 +6,9 @@ pub use self::consumer_response::*;
 mod keyword_literal_consumer;
 pub use self::keyword_literal_consumer::*;
 
+mod number_literal_consumer;
+pub use self::number_literal_consumer::*;
+
 mod operator_consumer;
 pub use self::operator_consumer::*;
 

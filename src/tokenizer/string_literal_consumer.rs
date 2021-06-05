@@ -1,9 +1,12 @@
-use super::{error::TokenizationError, ConsumerResponse, Token, TokenType};
+use super::{
+    error::{ErrorKind, TokenizationError},
+    ConsumerResponse, Token, TokenType,
+};
 
 pub fn string_literal_consumer(
     inp: &String,
     offset: usize,
-) -> Result<ConsumerResponse, UnterminatedStringError> {
+) -> Result<ConsumerResponse, TokenizationError> {
     // TODO: declare chars as variable
     if inp.chars().nth(offset).unwrap() != '"' {
         return Ok(ConsumerResponse { cons: 0, tok: None });
@@ -14,7 +17,7 @@ pub fn string_literal_consumer(
 
     loop {
         if offset + cons >= inp.chars().count() {
-            return Err(UnterminatedStringError);
+            return Err(TokenizationError::new(ErrorKind::UnterminatedString));
         }
 
         let c = inp.chars().nth(offset + cons).unwrap();
@@ -43,15 +46,6 @@ pub fn string_literal_consumer(
             val,
         }),
     })
-}
-
-#[derive(Clone, Debug)]
-pub struct UnterminatedStringError;
-
-impl TokenizationError for UnterminatedStringError {
-    fn kind(&self) -> String {
-        "string not terminated".to_string()
-    }
 }
 
 #[cfg(test)]
@@ -88,10 +82,11 @@ mod tests {
     }
     #[test]
     fn consume_unterminated_string() {
-        let rec = string_literal_consumer(&"\"hello world".to_string(), 0).map_err(|e| e.kind());
-        let exp = Err(UnterminatedStringError.kind());
+        let rec = string_literal_consumer(&"\"hello world".to_string(), 0)
+            .err()
+            .unwrap();
 
-        assert_eq!(rec, exp);
+        assert_eq!(rec.kind, ErrorKind::UnterminatedString);
     }
 
     fn consume_and_assert_string(val: &str) {
