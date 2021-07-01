@@ -20,3 +20,6 @@ pub use self::string_literal_consumer::*;
 
 mod token;
 pub use self::token::*;
+
+mod whitespace_consumer;
+pub use self::whitespace_consumer::*;
