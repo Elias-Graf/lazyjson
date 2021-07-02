@@ -1,6 +1,9 @@
-use super::{ConsumerResponse, Token, TokenType};
+use super::{error::TokenizationError, ConsumerResponse, Token, TokenType};
 
-pub fn operator_consumer(inp: &String, offset: usize) -> Result<ConsumerResponse, ()> {
+pub fn operator_consumer(
+    inp: &String,
+    offset: usize,
+) -> Result<ConsumerResponse, TokenizationError> {
     if inp.chars().nth(offset).unwrap() == ':' {
         let tok = Some(Token {
             typ: TokenType::Operator,

@@ -1,8 +1,11 @@
-use super::{consumer_response::ConsumerResponse, token::*};
+use super::{consumer_response::ConsumerResponse, error::TokenizationError, token::*};
 
 static KEYWORDS: &'static [&'static str] = &["false", "null", "true"];
 
-pub fn keyword_literal_consumer(inp: &String, offset: usize) -> Result<ConsumerResponse, ()> {
+pub fn keyword_literal_consumer(
+    inp: &String,
+    offset: usize,
+) -> Result<ConsumerResponse, TokenizationError> {
     for &keyword in KEYWORDS {
         let k_len = keyword.chars().count();
         let end = offset + k_len;

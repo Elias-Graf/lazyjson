@@ -77,6 +77,7 @@ pub mod tests {
 
         assert_eq!(r, e);
     }
+    #[test]
     pub fn consume_number_at_offset() {
         let r = number_literal_consumer(&"    1".to_string(), 4).unwrap();
         let e = ConsumerResponse {

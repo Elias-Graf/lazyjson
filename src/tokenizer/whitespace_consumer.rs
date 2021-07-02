@@ -1,6 +1,9 @@
-use super::ConsumerResponse;
+use super::{error::TokenizationError, ConsumerResponse};
 
-pub fn whitespace_consumer(inp: &String, offset: usize) -> Result<ConsumerResponse, ()> {
+pub fn whitespace_consumer(
+    inp: &String,
+    offset: usize,
+) -> Result<ConsumerResponse, TokenizationError> {
     let mut cons = 0;
 
     for c in inp[offset..].chars() {
