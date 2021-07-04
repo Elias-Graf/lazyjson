@@ -1,4 +1,6 @@
-#[derive(Eq, PartialEq, Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum TokenType {
     KeywordLiteral,
     NumberLiteral,
@@ -7,7 +9,7 @@ pub enum TokenType {
     StringLiteral,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct Token {
     pub typ: TokenType,
     pub val: String,
