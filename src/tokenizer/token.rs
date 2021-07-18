@@ -21,6 +21,35 @@ pub struct Token {
 
 #[wasm_bindgen]
 impl Token {
+    /// Create a token of type [`TokenType::KeywordLiteral`].
+    pub fn kwd(val: &str) -> Token {
+        Token {
+            typ: TokenType::KeywordLiteral,
+            val: val.into(),
+        }
+    }
+    /// Create a token of type [`TokenType::Operator`].
+    pub fn op(val: &str) -> Token {
+        Token {
+            typ: TokenType::Operator,
+            val: val.into(),
+        }
+    }
+    /// Create a token of type [`TokenType::Separator`].
+    pub fn sep(val: &str) -> Token {
+        Token {
+            typ: TokenType::Separator,
+            val: val.into(),
+        }
+    }
+    /// Create a token of type [`TokenType::StringLiteral`].
+    pub fn str(val: &str) -> Token {
+        Token {
+            typ: TokenType::StringLiteral,
+            val: val.into(),
+        }
+    }
+
     #[wasm_bindgen(getter)]
     pub fn val(&self) -> String {
         self.val.clone()
