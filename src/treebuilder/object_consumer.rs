@@ -24,7 +24,7 @@ pub fn object_consumer(
     loop {
         cons += 1;
 
-        let left = match toks.get(cons + offset) {
+        let mut left = match toks.get(cons + offset) {
             None => {
                 return Err(TreebuilderError::UnterminatedContainer(
                     UnterminatedContainer::new(NodeType::Object),
@@ -36,6 +36,26 @@ pub fn object_consumer(
         if is_obj_close(left) {
             cons += 1;
             break;
+        }
+
+        if cons > 1 {
+            if !is_separator(left) {
+                return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
+                    left.clone(),
+                    vec![Token::sep(",")],
+                )));
+            } else {
+                cons += 1;
+
+                left = match toks.get(cons + offset) {
+                    None => {
+                        return Err(TreebuilderError::UnterminatedContainer(
+                            UnterminatedContainer::new(NodeType::Object),
+                        ));
+                    }
+                    t => t.unwrap(),
+                };
+            }
         }
 
         if left.typ != TokenType::StringLiteral {
@@ -127,6 +147,10 @@ pub fn object_consumer(
         cons: cons,
         node: Some(Node::Object(ObjectNode::new(entries))),
     })
+}
+
+fn is_separator(left: &Token) -> bool {
+    left.typ == TokenType::Separator && left.val == ","
 }
 
 fn is_obj_open(tok: &Token) -> bool {
@@ -296,6 +320,57 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 9,
+            node: Some(Node::Object(ObjectNode::new(entries))),
+        };
+
+        assert_eq!(r, e);
+    }
+    #[test]
+    pub fn multiple_entries() {
+        let inp = &[
+            Token::sep("{"),
+            Token::str("keyword_key"),
+            Token::op(":"),
+            Token::kwd("null"),
+            Token::sep(","),
+            Token::str("number_key"),
+            Token::op(":"),
+            Token::num("123.456"),
+            Token::sep(","),
+            Token::str("string_key"),
+            Token::op(":"),
+            Token::str("string value"),
+            Token::sep(","),
+            Token::str("object_key"),
+            Token::op(":"),
+            Token::sep("{"),
+            Token::sep("}"),
+            Token::sep("}"),
+        ];
+
+        let r = object_consumer(inp, 0).unwrap();
+
+        let mut entries = HashMap::new();
+
+        entries.insert(
+            String::from("keyword_key"),
+            Node::Value(ValueNode::Null(NullNode::new())),
+        );
+        entries.insert(
+            String::from("number_key"),
+            Node::Value(ValueNode::Number(NumberNode::new("123.456"))),
+        );
+        entries.insert(
+            String::from("string_key"),
+            Node::Value(ValueNode::String(StringNode::new("string value"))),
+        );
+        entries.insert(
+            String::from("object_key"),
+            Node::Object(ObjectNode::new(HashMap::new())),
+        );
+
+        let e = ConsumerResponse {
+            cons: inp.len(),
             node: Some(Node::Object(ObjectNode::new(entries))),
         };
 
