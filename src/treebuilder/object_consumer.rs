@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
 use super::{
+    array_consumer::array_consumer,
     consumer_response::ConsumerResponse,
-    error::{TreebuilderError, UnexpectedToken, UnterminatedContainer},
-    node::{BoolNode, Node, NodeType, NullNode, NumberNode, ObjectNode, StringNode, ValueNode},
+    error::{TreebuilderError, UnexpectedToken},
+    node::{
+        BoolNode, ContainerNode, Node, NodeType, NullNode, NumberNode, ObjectNode, StringNode,
+        ValueNode,
+    },
 };
 use crate::tokenizer::{Token, TokenType};
 
@@ -26,9 +30,7 @@ pub fn object_consumer(
 
         let mut left = match toks.get(cons + offset) {
             None => {
-                return Err(TreebuilderError::UnterminatedContainer(
-                    UnterminatedContainer::new(NodeType::Object),
-                ));
+                return Err(TreebuilderError::new_unterminated_cont(NodeType::Object));
             }
             t => t.unwrap(),
         };
@@ -49,9 +51,7 @@ pub fn object_consumer(
 
                 left = match toks.get(cons + offset) {
                     None => {
-                        return Err(TreebuilderError::UnterminatedContainer(
-                            UnterminatedContainer::new(NodeType::Object),
-                        ));
+                        return Err(TreebuilderError::new_unterminated_cont(NodeType::Object));
                     }
                     t => t.unwrap(),
                 };
@@ -91,6 +91,7 @@ pub fn object_consumer(
                             Token::kwd("true"),
                             Token::num("<number>"),
                             Token::sep("{"),
+                            Token::sep("["),
                             Token::str("<string>"),
                         ],
                     )))
@@ -108,6 +109,14 @@ pub fn object_consumer(
 
                     inner.node.unwrap()
                 }
+                "[" => {
+                    let inner = array_consumer(toks, cons + offset)?;
+
+                    // Subtract one as otherwise we count the opening bracket twice
+                    cons += inner.cons - 1;
+
+                    inner.node.unwrap()
+                }
                 _ => {
                     return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
                         right.clone(),
@@ -117,6 +126,7 @@ pub fn object_consumer(
                             Token::kwd("true"),
                             Token::num("<number>"),
                             Token::sep("{"),
+                            Token::sep("["),
                             Token::str("<string>"),
                         ],
                     )))
@@ -134,6 +144,7 @@ pub fn object_consumer(
                         Token::kwd("true"),
                         Token::num("<number>"),
                         Token::sep("{"),
+                        Token::sep("["),
                         Token::str("<string>"),
                     ],
                 )));
@@ -145,7 +156,9 @@ pub fn object_consumer(
 
     Ok(ConsumerResponse {
         cons: cons,
-        node: Some(Node::Object(ObjectNode::new(entries))),
+        node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+            entries,
+        )))),
     })
 }
 
@@ -184,7 +197,9 @@ mod tests {
         let r = object_consumer(&[Token::sep("{"), Token::sep("}")], 0).unwrap();
         let e = ConsumerResponse {
             cons: 2,
-            node: Some(Node::Object(ObjectNode::new(HashMap::new()))),
+            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+                HashMap::new(),
+            )))),
         };
 
         assert_eq!(r, e);
@@ -192,8 +207,7 @@ mod tests {
     #[test]
     pub fn unterminated_object() {
         let r = object_consumer(&[Token::sep("{")], 0).unwrap_err();
-        let e =
-            TreebuilderError::UnterminatedContainer(UnterminatedContainer::new(NodeType::Object));
+        let e = TreebuilderError::new_unterminated_cont(NodeType::Object);
 
         assert_eq!(r, e);
     }
@@ -235,7 +249,9 @@ mod tests {
 
             ConsumerResponse {
                 cons: 5,
-                node: Some(Node::Object(ObjectNode::new(entries))),
+                node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+                    entries,
+                )))),
             }
         }
     }
@@ -259,7 +275,9 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            node: Some(Node::Object(ObjectNode::new(entries))),
+            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+                entries,
+            )))),
         };
 
         assert_eq!(r, e);
@@ -284,7 +302,32 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            node: Some(Node::Object(ObjectNode::new(entries))),
+            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+                entries,
+            )))),
+        };
+
+        assert_eq!(r, e);
+    }
+    #[test]
+    pub fn single_array_entry() {
+        let inp = &[
+            Token::sep("{"),
+            Token::str("array_key"),
+            Token::op(":"),
+            Token::sep("["),
+            Token::sep("]"),
+            Token::sep("}"),
+        ];
+
+        let mut entries = HashMap::new();
+
+        entries.insert(String::from("array_key"), Node::new_arr(Vec::new()));
+
+        let r = object_consumer(inp, 0).unwrap();
+        let e = ConsumerResponse {
+            cons: 6,
+            node: Some(Node::new_obj(entries)),
         };
 
         assert_eq!(r, e);
@@ -314,13 +357,15 @@ mod tests {
 
         entries.insert(
             String::from("object_key"),
-            Node::Object(ObjectNode::new(inner_entries)),
+            Node::Container(ContainerNode::Object(ObjectNode::new(inner_entries))),
         );
 
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 9,
-            node: Some(Node::Object(ObjectNode::new(entries))),
+            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+                entries,
+            )))),
         };
 
         assert_eq!(r, e);
@@ -366,12 +411,14 @@ mod tests {
         );
         entries.insert(
             String::from("object_key"),
-            Node::Object(ObjectNode::new(HashMap::new())),
+            Node::Container(ContainerNode::Object(ObjectNode::new(HashMap::new()))),
         );
 
         let e = ConsumerResponse {
             cons: inp.len(),
-            node: Some(Node::Object(ObjectNode::new(entries))),
+            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
+                entries,
+            )))),
         };
 
         assert_eq!(r, e);
@@ -435,6 +482,7 @@ mod tests {
                     Token::kwd("true"),
                     Token::num("<number>"),
                     Token::sep("{"),
+                    Token::sep("["),
                     Token::str("<string>"),
                 ],
             ));

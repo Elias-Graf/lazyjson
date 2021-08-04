@@ -41,7 +41,19 @@ pub enum TreebuilderError {
     UnterminatedContainer(UnterminatedContainer),
 }
 
+impl TreebuilderError {
+    pub fn new_unexp_tok(exp: Vec<Token>, rec: Token) -> TreebuilderError {
+        TreebuilderError::UnexpectedToken(UnexpectedToken { exp, rec })
+    }
+
+    pub fn new_unterminated_cont(node_typ: NodeType) -> TreebuilderError {
+        TreebuilderError::UnterminatedContainer(UnterminatedContainer { node_typ })
+    }
+}
+
 impl UnterminatedContainer {
+    #[deprecated(note = "Use [`TreebuilderError::new_unterminated_container`] instead")]
+    /// Please use [`TreebuilderError::new_unterminated_container()`] instead.
     pub fn new(node_typ: NodeType) -> UnterminatedContainer {
         UnterminatedContainer { node_typ }
     }
