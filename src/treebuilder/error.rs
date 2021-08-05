@@ -1,36 +1,15 @@
-use std::fmt::{self};
-
 use crate::tokenizer::Token;
 
 use super::node::NodeType;
 
-#[deprecated]
 #[derive(Eq, PartialEq, Debug, Clone)]
-/// This error does not describe the origin/causation very well, thus it should
-/// be considered using a different error, or creating a new one.
-pub struct UnexpectedToken {
-    // TODO: also accept token types (if possible) as, for example, if the value
-    // must be a string, it doesn't matter what the actual value is.
-    exp: Vec<Token>,
-    rec: Token,
+pub struct ExpectedAssignment {
+    unexp: Token,
 }
 
-impl UnexpectedToken {
-    pub fn new(rec: Token, exp: Vec<Token>) -> UnexpectedToken {
-        UnexpectedToken { exp, rec }
-    }
-}
-
-impl fmt::Display for UnexpectedToken {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let UnexpectedToken { exp, rec } = self;
-
-        if exp.len() == 1 {
-            write!(f, "unexpected token: {:?}, expected: {:?}", rec, exp[0])
-        } else {
-            write!(f, "unexpected token: {:?}, expected one of {:?}", rec, exp)
-        }
-    }
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct ExpectedObjectKey {
+    unexp: Token,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -55,28 +34,29 @@ pub struct UnknownKeyword {
 
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum TreebuilderError {
+    ExpectedAssignment(ExpectedAssignment),
+    ExpectedObjectKey(ExpectedObjectKey),
     ExpectedSeparatorOrClose(ExpectedSeparatorOrClose),
     ExpectedValueComposition(ExpectedValueComposition),
-    #[deprecated]
-    /// See [`UnexpectedToken`] for more information.
-    UnexpectedToken(UnexpectedToken),
     UnknownKeyword(UnknownKeyword),
     UnterminatedContainer(UnterminatedContainer),
 }
 
 impl TreebuilderError {
+    pub fn new_exp_assign(unexp: Token) -> TreebuilderError {
+        TreebuilderError::ExpectedAssignment(ExpectedAssignment { unexp })
+    }
+
+    pub fn new_exp_obj_key(unexp: Token) -> TreebuilderError {
+        TreebuilderError::ExpectedObjectKey(ExpectedObjectKey { unexp })
+    }
+
     pub fn new_exp_sep_or_close(unexp: Token) -> TreebuilderError {
         TreebuilderError::ExpectedSeparatorOrClose(ExpectedSeparatorOrClose { unexp })
     }
 
     pub fn new_exp_val_comp(unexp: Token) -> TreebuilderError {
         TreebuilderError::ExpectedValueComposition(ExpectedValueComposition { unexp })
-    }
-
-    #[deprecated]
-    /// See [`UnexpectedToken`] for more information.
-    pub fn new_unexp_tok(exp: Vec<Token>, rec: Token) -> TreebuilderError {
-        TreebuilderError::UnexpectedToken(UnexpectedToken { exp, rec })
     }
 
     pub fn new_unknown_kwd(tok: Token) -> TreebuilderError {

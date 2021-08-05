@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{
     consumer_response::ConsumerResponse,
-    error::{TreebuilderError, UnexpectedToken},
+    error::TreebuilderError,
     node::{ContainerNode, Node, NodeType, ObjectNode},
     value_consumer::value_consumer,
 };
@@ -53,19 +53,15 @@ pub fn object_consumer(
         }
 
         if left.typ != TokenType::StringLiteral {
-            return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                left.clone(),
-                vec![Token::str("<string>")],
-            )));
+            return Err(TreebuilderError::new_exp_obj_key(left.clone()));
         }
 
         cons += 1;
 
-        if !is_assignment(&toks[cons + offset]) {
-            return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                toks[cons + offset].clone(),
-                vec![Token::op(":")],
-            )));
+        let assign = toks.get(cons + offset).unwrap();
+
+        if !is_assignment(assign) {
+            return Err(TreebuilderError::new_exp_assign(assign.clone()));
         }
 
         cons += 1;
@@ -339,12 +335,8 @@ mod tests {
             Token::kwd("null"),
             Token::sep("}"),
         ];
-
         let r = object_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-            Token::kwd("null"),
-            vec![Token::str("<string>")],
-        ));
+        let e = TreebuilderError::new_exp_obj_key(Token::kwd("null"));
 
         assert_eq!(r, e);
     }
@@ -357,12 +349,8 @@ mod tests {
             Token::kwd("null"),
             Token::sep("}"),
         ];
-
         let r = object_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-            Token::kwd("null"),
-            vec![Token::op(":")],
-        ));
+        let e = TreebuilderError::new_exp_assign(Token::kwd("null"));
 
         assert_eq!(r, e);
     }
