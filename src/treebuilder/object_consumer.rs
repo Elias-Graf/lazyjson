@@ -1,16 +1,15 @@
 use std::collections::HashMap;
 
 use super::{
-    array_consumer::array_consumer,
     consumer_response::ConsumerResponse,
     error::{TreebuilderError, UnexpectedToken},
-    node::{
-        BoolNode, ContainerNode, Node, NodeType, NullNode, NumberNode, ObjectNode, StringNode,
-        ValueNode,
-    },
+    node::{ContainerNode, Node, NodeType, ObjectNode},
+    value_consumer::value_consumer,
 };
 use crate::tokenizer::{Token, TokenType};
 
+/// Consumes an object composition. Non object compositions (e.g. not object
+/// open) are ignored.
 pub fn object_consumer(
     toks: &[Token],
     offset: usize,
@@ -22,12 +21,10 @@ pub fn object_consumer(
         });
     }
 
-    let mut cons = 0;
+    let mut cons = 1;
     let mut entries = HashMap::new();
 
     loop {
-        cons += 1;
-
         let mut left = match toks.get(cons + offset) {
             None => {
                 return Err(TreebuilderError::new_unterminated_cont(NodeType::Object));
@@ -42,10 +39,7 @@ pub fn object_consumer(
 
         if cons > 1 {
             if !is_separator(left) {
-                return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                    left.clone(),
-                    vec![Token::sep(",")],
-                )));
+                return Err(TreebuilderError::new_exp_sep_or_close(left.clone()));
             } else {
                 cons += 1;
 
@@ -76,82 +70,18 @@ pub fn object_consumer(
 
         cons += 1;
 
-        let right = toks.get(cons + offset).unwrap();
-        let node = match right.typ {
-            TokenType::KeywordLiteral => match right.val.as_str() {
-                "false" => Node::Value(ValueNode::Bool(BoolNode::new(false))),
-                "true" => Node::Value(ValueNode::Bool(BoolNode::new(true))),
-                "null" => Node::Value(ValueNode::Null(NullNode::new())),
-                _ => {
-                    return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                        right.clone(),
-                        vec![
-                            Token::kwd("false"),
-                            Token::kwd("null"),
-                            Token::kwd("true"),
-                            Token::num("<number>"),
-                            Token::sep("{"),
-                            Token::sep("["),
-                            Token::str("<string>"),
-                        ],
-                    )))
-                }
-            },
-            TokenType::NumberLiteral => {
-                Node::Value(ValueNode::Number(NumberNode::new(right.val.as_str())))
+        let value_consume = value_consumer(toks, cons + offset)?;
+        let value = match value_consume.node {
+            None => {
+                let unexp = toks.get(cons + offset).unwrap();
+                return Err(TreebuilderError::new_exp_val_comp(unexp.clone()));
             }
-            TokenType::Separator => match right.val.as_str() {
-                "{" => {
-                    let inner = object_consumer(toks, cons + offset)?;
-
-                    // Subtract one as otherwise we count the opening brace twice.
-                    cons += inner.cons - 1;
-
-                    inner.node.unwrap()
-                }
-                "[" => {
-                    let inner = array_consumer(toks, cons + offset)?;
-
-                    // Subtract one as otherwise we count the opening bracket twice
-                    cons += inner.cons - 1;
-
-                    inner.node.unwrap()
-                }
-                _ => {
-                    return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                        right.clone(),
-                        vec![
-                            Token::kwd("false"),
-                            Token::kwd("null"),
-                            Token::kwd("true"),
-                            Token::num("<number>"),
-                            Token::sep("{"),
-                            Token::sep("["),
-                            Token::str("<string>"),
-                        ],
-                    )))
-                }
-            },
-            TokenType::StringLiteral => {
-                Node::Value(ValueNode::String(StringNode::new(right.val.as_str())))
-            }
-            _ => {
-                return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                    right.clone(),
-                    vec![
-                        Token::kwd("false"),
-                        Token::kwd("null"),
-                        Token::kwd("true"),
-                        Token::num("<number>"),
-                        Token::sep("{"),
-                        Token::sep("["),
-                        Token::str("<string>"),
-                    ],
-                )));
-            }
+            n => n.unwrap(),
         };
 
-        entries.insert(left.val.clone(), node);
+        cons += value_consume.cons;
+
+        entries.insert(left.val.clone(), value);
     }
 
     Ok(ConsumerResponse {
@@ -214,22 +144,22 @@ mod tests {
     #[test]
     pub fn single_keyword_entry() {
         let r_false = object_consumer(&gen_input(Token::kwd("false")), 0).unwrap();
-        let e_false = gen_exp(ValueNode::Bool(BoolNode::new(false)));
+        let e_false = gen_exp(Node::new_bool(false));
 
         assert_eq!(r_false, e_false);
 
         let r_true = object_consumer(&gen_input(Token::kwd("true")), 0).unwrap();
-        let e_true = gen_exp(ValueNode::Bool(BoolNode::new(true)));
+        let e_true = gen_exp(Node::new_bool(true));
 
         assert_eq!(r_true, e_true);
 
         let r_null = object_consumer(&gen_input(Token::kwd("null")), 0).unwrap();
-        let e_null = gen_exp(ValueNode::Null(NullNode::new()));
+        let e_null = gen_exp(Node::new_null());
 
         assert_eq!(r_null, e_null);
 
         let r_string = object_consumer(&gen_input(Token::str("test string")), 0).unwrap();
-        let e_string = gen_exp(ValueNode::String(StringNode::new("test string")));
+        let e_string = gen_exp(Node::new_str("test string"));
 
         assert_eq!(r_string, e_string);
 
@@ -242,16 +172,14 @@ mod tests {
                 Token::sep("}"),
             ]
         }
-        fn gen_exp(val_node: ValueNode) -> ConsumerResponse {
+        fn gen_exp(val_node: Node) -> ConsumerResponse {
             let mut entries = HashMap::new();
 
-            entries.insert("keyword_key".into(), Node::Value(val_node));
+            entries.insert("keyword_key".into(), val_node);
 
             ConsumerResponse {
                 cons: 5,
-                node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-                    entries,
-                )))),
+                node: Some(Node::new_obj(entries)),
             }
         }
     }
@@ -267,10 +195,7 @@ mod tests {
 
         let mut entries = HashMap::new();
 
-        entries.insert(
-            "number_key".into(),
-            Node::Value(ValueNode::Number(NumberNode::new("123.456"))),
-        );
+        entries.insert("number_key".into(), Node::new_num("123.456"));
 
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -294,10 +219,7 @@ mod tests {
 
         let mut entries = HashMap::new();
 
-        entries.insert(
-            "string_key".into(),
-            Node::Value(ValueNode::String(StringNode::new("string_value"))),
-        );
+        entries.insert("string_key".into(), Node::new_str("string_value"));
 
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -333,7 +255,7 @@ mod tests {
         assert_eq!(r, e);
     }
     #[test]
-    pub fn single_object_entry() {
+    pub fn nested_object() {
         let inp = &[
             Token::sep("{"),
             Token::str("object_key"),
@@ -348,10 +270,7 @@ mod tests {
 
         let mut inner_entries = HashMap::new();
 
-        inner_entries.insert(
-            String::from("inner_key"),
-            Node::Value(ValueNode::String(StringNode::new("inner_val"))),
-        );
+        inner_entries.insert(String::from("inner_key"), Node::new_str("inner_val"));
 
         let mut entries = HashMap::new();
 
@@ -397,22 +316,10 @@ mod tests {
 
         let mut entries = HashMap::new();
 
-        entries.insert(
-            String::from("keyword_key"),
-            Node::Value(ValueNode::Null(NullNode::new())),
-        );
-        entries.insert(
-            String::from("number_key"),
-            Node::Value(ValueNode::Number(NumberNode::new("123.456"))),
-        );
-        entries.insert(
-            String::from("string_key"),
-            Node::Value(ValueNode::String(StringNode::new("string value"))),
-        );
-        entries.insert(
-            String::from("object_key"),
-            Node::Container(ContainerNode::Object(ObjectNode::new(HashMap::new()))),
-        );
+        entries.insert(String::from("keyword_key"), Node::new_null());
+        entries.insert(String::from("number_key"), Node::new_num("123.456"));
+        entries.insert(String::from("string_key"), Node::new_str("string value"));
+        entries.insert(String::from("object_key"), Node::new_obj(HashMap::new()));
 
         let e = ConsumerResponse {
             cons: inp.len(),
@@ -474,18 +381,7 @@ mod tests {
             ];
 
             let r = object_consumer(inp, 0).unwrap_err();
-            let e = TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                val_tok,
-                vec![
-                    Token::kwd("false"),
-                    Token::kwd("null"),
-                    Token::kwd("true"),
-                    Token::num("<number>"),
-                    Token::sep("{"),
-                    Token::sep("["),
-                    Token::str("<string>"),
-                ],
-            ));
+            let e = TreebuilderError::new_exp_val_comp(val_tok);
 
             assert_eq!(r, e);
         }

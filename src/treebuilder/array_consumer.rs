@@ -1,15 +1,12 @@
-use crate::{
-    tokenizer::{Token, TokenType},
-    treebuilder::{error::UnexpectedToken, node::StringNode},
-};
+use crate::tokenizer::{Token, TokenType};
 
 use super::{
-    consumer_response::ConsumerResponse,
-    error::TreebuilderError,
-    node::{BoolNode, Node, NodeType, NullNode, NumberNode, ValueNode},
-    object_consumer::object_consumer,
+    consumer_response::ConsumerResponse, error::TreebuilderError, node::Node,
+    value_consumer::value_consumer,
 };
 
+/// Consumes an array composition. Non array composition (e.g. not array open)
+/// are ignored.
 pub fn array_consumer(toks: &[Token], offset: usize) -> Result<ConsumerResponse, TreebuilderError> {
     if !is_array_open(toks.get(offset).unwrap()) {
         return Ok(ConsumerResponse {
@@ -33,106 +30,27 @@ pub fn array_consumer(toks: &[Token], offset: usize) -> Result<ConsumerResponse,
     }
 
     loop {
-        let to_consume = match toks.get(cons + offset) {
+        let child_consume = value_consumer(toks, cons + offset)?;
+        let child = match child_consume.node {
             None => {
-                return Err(TreebuilderError::new_unterminated_cont(NodeType::Array));
+                let unexp = toks.get(cons + offset).unwrap().clone();
+                return Err(TreebuilderError::new_exp_val_comp(unexp));
             }
-            t => t.unwrap(),
+            n => n.unwrap(),
         };
 
-        let child = match to_consume.typ {
-            TokenType::KeywordLiteral => match to_consume.val.as_str() {
-                "false" => {
-                    cons += 1;
-                    Node::Value(ValueNode::Bool(BoolNode::new(false)))
-                }
-                "true" => {
-                    cons += 1;
-                    Node::Value(ValueNode::Bool(BoolNode::new(true)))
-                }
-                "null" => {
-                    cons += 1;
-                    Node::Value(ValueNode::Null(NullNode::new()))
-                }
-                _ => {
-                    return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                        to_consume.clone(),
-                        vec![
-                            Token::kwd("false"),
-                            Token::kwd("null"),
-                            Token::kwd("true"),
-                            Token::num("<number>"),
-                            Token::sep("{"),
-                            Token::str("<string>"),
-                        ],
-                    )))
-                }
-            },
-            TokenType::NumberLiteral => {
-                cons += 1;
-                Node::Value(ValueNode::Number(NumberNode::new(to_consume.val.as_str())))
-            }
-            TokenType::Separator => match to_consume.val.as_str() {
-                "{" => {
-                    let inner = object_consumer(toks, cons + offset)?;
-                    cons += inner.cons;
-
-                    inner.node.unwrap()
-                }
-                "[" => {
-                    let inner = array_consumer(toks, cons + offset)?;
-                    cons += inner.cons;
-
-                    inner.node.unwrap()
-                }
-                _ => {
-                    return Err(TreebuilderError::new_unexp_tok(
-                        vec![
-                            Token::kwd("false"),
-                            Token::kwd("null"),
-                            Token::kwd("true"),
-                            Token::num("<number>"),
-                            Token::sep("{"),
-                            Token::sep("["),
-                            Token::str("<string>"),
-                        ],
-                        to_consume.clone(),
-                    ))
-                }
-            },
-            TokenType::StringLiteral => {
-                cons += 1;
-                Node::Value(ValueNode::String(StringNode::new(to_consume.val.as_str())))
-            }
-            _ => {
-                return Err(TreebuilderError::UnexpectedToken(UnexpectedToken::new(
-                    to_consume.clone(),
-                    vec![
-                        Token::kwd("false"),
-                        Token::kwd("null"),
-                        Token::kwd("true"),
-                        Token::num("<number>"),
-                        Token::sep("{"),
-                        Token::str("<string>"),
-                    ],
-                )));
-            }
-        };
-
+        cons += child_consume.cons;
         entries.push(child);
 
-        let comma_or_close = toks.get(cons + offset).unwrap();
+        let sep_or_close = toks.get(cons + offset).unwrap();
 
-        if comma_or_close.typ == TokenType::Separator && comma_or_close.val == "," {
+        if sep_or_close.typ == TokenType::Separator && sep_or_close.val == "," {
             cons += 1;
-        } else if comma_or_close.typ == TokenType::Separator && comma_or_close.val == "]" {
+        } else if sep_or_close.typ == TokenType::Separator && sep_or_close.val == "]" {
             cons += 1;
             break;
         } else {
-            return Err(TreebuilderError::new_unexp_tok(
-                vec![Token::sep(","), Token::sep("]")],
-                comma_or_close.clone(),
-            ));
+            return Err(TreebuilderError::new_exp_sep_or_close(sep_or_close.clone()));
         }
     }
 
@@ -294,12 +212,16 @@ mod tests {
             Token::kwd("null"),
             Token::sep("]"),
         ];
-
         let r = array_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::new_unexp_tok(
-            vec![Token::sep(","), Token::sep("]")],
-            Token::kwd("null"),
-        );
+        let e = TreebuilderError::new_exp_sep_or_close(Token::kwd("null"));
+
+        assert_eq!(r, e);
+    }
+    #[test]
+    pub fn invalid_value() {
+        let inp = &[Token::sep("["), Token::sep(","), Token::sep("]")];
+        let r = array_consumer(inp, 0).unwrap_err();
+        let e = TreebuilderError::new_exp_val_comp(Token::sep(","));
 
         assert_eq!(r, e);
     }
