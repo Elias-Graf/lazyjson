@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -6,35 +7,36 @@ pub enum NodeType {
     Object,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct BoolNode {
-    val: bool,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct NullNode {}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct NumberNode {
-    val: String,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct StringNode {
-    val: String,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ArrayNode {
     entries: Vec<Node>,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub struct BoolNode {
+    val: bool,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub struct NullNode {}
+
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub struct NumberNode {
+    val: String,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ObjectNode {
     entries: HashMap<String, Node>,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub struct StringNode {
+    val: String,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "typ")]
 pub enum Node {
     Array(ArrayNode),
     Bool(BoolNode),
@@ -46,26 +48,30 @@ pub enum Node {
 
 impl Node {
     pub fn new_arr(entries: Vec<Node>) -> Node {
-        Node::Array(ArrayNode {entries})
+        Node::Array(ArrayNode { entries })
     }
 
     pub fn new_bool(val: bool) -> Node {
-        Node::Bool(BoolNode{val})
+        Node::Bool(BoolNode { val })
     }
 
     pub fn new_null() -> Node {
-        Node::Null(NullNode{})
+        Node::Null(NullNode {})
     }
 
     pub fn new_num(val: &str) -> Node {
-        Node::Number(NumberNode {val: val.to_string()})
+        Node::Number(NumberNode {
+            val: val.to_string(),
+        })
     }
 
     pub fn new_obj(entries: HashMap<String, Node>) -> Node {
-        Node::Object(ObjectNode {entries})
+        Node::Object(ObjectNode { entries })
     }
 
     pub fn new_str(val: &str) -> Node {
-        Node::String(StringNode {val: val.to_string()})
+        Node::String(StringNode {
+            val: val.to_string(),
+        })
     }
 }

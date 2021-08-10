@@ -38,7 +38,7 @@ pub fn tokenize(inp: &str) -> Vec<Token> {
     let mut toks = Vec::new();
     let mut cons: usize = 0;
 
-    loop {
+    'outer: loop {
         for consumer in consumers {
             if cons >= inp.chars().count() {
                 return toks;
@@ -53,9 +53,14 @@ pub fn tokenize(inp: &str) -> Vec<Token> {
                     toks.push(res.tok.unwrap());
                 }
 
-                continue;
+                continue 'outer;
             }
         }
+
+        panic!(
+            "failed to parse character {}",
+            inp.chars().nth(cons).unwrap()
+        );
     }
 }
 
@@ -66,11 +71,7 @@ mod tests {
     #[test]
     pub fn primitive() {
         let r = tokenize("false");
-        let e: Vec<Token> = [Token {
-            typ: TokenType::KeywordLiteral,
-            val: "false".into(),
-        }]
-        .into();
+        let e: Vec<Token> = [Token::kwd("false", 0, 5)].into();
 
         assert_eq!(r, e);
     }
@@ -79,34 +80,13 @@ mod tests {
         tokenize_and_assert(
             "[false, true, null]",
             &[
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: "false".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: "true".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: "null".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
+                Token::sep("[", 0, 1),
+                Token::kwd("false", 1, 6),
+                Token::sep(",", 6, 7),
+                Token::kwd("true", 8, 12),
+                Token::sep(",", 12, 13),
+                Token::kwd("null", 14, 18),
+                Token::sep("]", 18, 19),
             ],
         );
     }
@@ -115,70 +95,28 @@ mod tests {
         tokenize_and_assert(
             "[\"hello\", \"world\"]",
             &[
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "hello".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "world".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
+                Token::sep("[", 0, 1),
+                Token::str("hello", 1, 8),
+                Token::sep(",", 8, 9),
+                Token::str("world", 10, 17),
+                Token::sep("]", 17, 18),
             ],
         );
     }
     #[test]
-    pub fn maps() {
+    pub fn objects() {
         tokenize_and_assert(
             "{\"firstName\": \"Bob\", \"lastName\": \"Miller\"}",
             &[
-                Token {
-                    typ: TokenType::Separator,
-                    val: "{".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "firstName".into(),
-                },
-                Token {
-                    typ: TokenType::Operator,
-                    val: ":".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "Bob".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "lastName".into(),
-                },
-                Token {
-                    typ: TokenType::Operator,
-                    val: ":".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "Miller".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "}".into(),
-                },
+                Token::sep("{", 0, 1),
+                Token::str("firstName", 1, 12),
+                Token::op(":", 12, 13),
+                Token::str("Bob", 14, 19),
+                Token::sep(",", 19, 20),
+                Token::str("lastName", 21, 31),
+                Token::op(":", 31, 32),
+                Token::str("Miller", 33, 41),
+                Token::sep("}", 41, 42),
             ],
         );
     }
@@ -187,58 +125,19 @@ mod tests {
         tokenize_and_assert(
             "[[false],[false],[false]]",
             &[
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: "false".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: "false".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: "false".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
+                Token::sep("[", 0, 1),
+                Token::sep("[", 1, 2),
+                Token::kwd("false", 2, 7),
+                Token::sep("]", 7, 8),
+                Token::sep(",", 8, 9),
+                Token::sep("[", 9, 10),
+                Token::kwd("false", 10, 15),
+                Token::sep("]", 15, 16),
+                Token::sep(",", 16, 17),
+                Token::sep("[", 17, 18),
+                Token::kwd("false", 18, 23),
+                Token::sep("]", 23, 24),
+                Token::sep("]", 24, 25),
             ],
         );
     }
@@ -247,58 +146,19 @@ mod tests {
         tokenize_and_assert(
             "[{\"city\": \"New York\"}, {\"city\": \"London\"}]",
             &[
-                Token {
-                    typ: TokenType::Separator,
-                    val: "[".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "{".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "city".into(),
-                },
-                Token {
-                    typ: TokenType::Operator,
-                    val: ":".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "New York".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "}".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: ",".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "{".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "city".into(),
-                },
-                Token {
-                    typ: TokenType::Operator,
-                    val: ":".into(),
-                },
-                Token {
-                    typ: TokenType::StringLiteral,
-                    val: "London".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "}".into(),
-                },
-                Token {
-                    typ: TokenType::Separator,
-                    val: "]".into(),
-                },
+                Token::sep("[", 0, 1),
+                Token::sep("{", 1, 2),
+                Token::str("city", 2, 8),
+                Token::op(":", 8, 9),
+                Token::str("New York", 10, 20),
+                Token::sep("}", 20, 21),
+                Token::sep(",", 21, 22),
+                Token::sep("{", 23, 24),
+                Token::str("city", 24, 30),
+                Token::op(":", 30, 31),
+                Token::str("London", 32, 40),
+                Token::sep("}", 40, 41),
+                Token::sep("]", 41, 42),
             ],
         );
     }

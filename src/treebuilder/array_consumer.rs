@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     pub fn non_array() {
-        let inp = &[Token::kwd("null")];
+        let inp = &[Token::kwd("null", 0, 0)];
 
         let r = array_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -86,7 +86,7 @@ mod tests {
     }
     #[test]
     pub fn empty_array() {
-        let inp = &[Token::sep("["), Token::sep("]")];
+        let inp = &[Token::sep("[", 0, 0), Token::sep("]", 0, 0)];
 
         let r = array_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -98,7 +98,11 @@ mod tests {
     }
     #[test]
     pub fn single_keyword() {
-        let inp = &[Token::sep("["), Token::kwd("false"), Token::sep("]")];
+        let inp = &[
+            Token::sep("[", 0, 0),
+            Token::kwd("false", 0, 0),
+            Token::sep("]", 0, 0),
+        ];
 
         let r = array_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -110,7 +114,11 @@ mod tests {
     }
     #[test]
     pub fn single_number() {
-        let inp = &[Token::sep("["), Token::num("1"), Token::sep("]")];
+        let inp = &[
+            Token::sep("[", 0, 0),
+            Token::num("1", 0, 0),
+            Token::sep("]", 0, 0),
+        ];
 
         let r = array_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -122,7 +130,11 @@ mod tests {
     }
     #[test]
     pub fn single_string() {
-        let inp = &[Token::sep("["), Token::str("test_string"), Token::sep("]")];
+        let inp = &[
+            Token::sep("[", 0, 0),
+            Token::str("test_string", 0, 0),
+            Token::sep("]", 0, 0),
+        ];
 
         let r = array_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
@@ -135,10 +147,10 @@ mod tests {
     #[test]
     pub fn single_object() {
         let inp = &[
-            Token::sep("["),
-            Token::sep("{"),
-            Token::sep("}"),
-            Token::sep("]"),
+            Token::sep("[", 0, 0),
+            Token::sep("{", 0, 0),
+            Token::sep("}", 0, 0),
+            Token::sep("]", 0, 0),
         ];
 
         let r = array_consumer(inp, 0).unwrap();
@@ -152,10 +164,10 @@ mod tests {
     #[test]
     pub fn nested_array() {
         let inp = &[
-            Token::sep("["),
-            Token::sep("["),
-            Token::sep("]"),
-            Token::sep("]"),
+            Token::sep("[", 0, 0),
+            Token::sep("[", 0, 0),
+            Token::sep("]", 0, 0),
+            Token::sep("]", 0, 0),
         ];
 
         let r = array_consumer(inp, 0).unwrap();
@@ -169,23 +181,23 @@ mod tests {
     #[test]
     pub fn multiple_entries() {
         let inp = &[
-            Token::sep("["),
-            Token::kwd("null"),
-            Token::sep(","),
-            Token::kwd("false"),
-            Token::sep(","),
-            Token::kwd("true"),
-            Token::sep(","),
-            Token::num("123.456"),
-            Token::sep(","),
-            Token::str("test_string"),
-            Token::sep(","),
-            Token::sep("["),
-            Token::sep("]"),
-            Token::sep(","),
-            Token::sep("{"),
-            Token::sep("}"),
-            Token::sep("]"),
+            Token::sep("[", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::kwd("false", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::kwd("true", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::num("123.456", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::str("test_string", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::sep("[", 0, 0),
+            Token::sep("]", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::sep("{", 0, 0),
+            Token::sep("}", 0, 0),
+            Token::sep("]", 0, 0),
         ];
 
         let r = array_consumer(inp, 0).unwrap();
@@ -207,21 +219,25 @@ mod tests {
     #[test]
     pub fn missing_comma() {
         let inp = &[
-            Token::sep("["),
-            Token::kwd("null"),
-            Token::kwd("null"),
-            Token::sep("]"),
+            Token::sep("[", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::sep("]", 0, 0),
         ];
         let r = array_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::new_exp_sep_or_close(Token::kwd("null"));
+        let e = TreebuilderError::new_exp_sep_or_close(Token::kwd("null", 0, 0));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn invalid_value() {
-        let inp = &[Token::sep("["), Token::sep(","), Token::sep("]")];
+        let inp = &[
+            Token::sep("[", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::sep("]", 0, 0),
+        ];
         let r = array_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::new_exp_val_comp(Token::sep(","));
+        let e = TreebuilderError::new_exp_val_comp(Token::sep(",", 0, 0));
 
         assert_eq!(r, e);
     }

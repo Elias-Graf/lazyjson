@@ -24,21 +24,21 @@ mod tests {
 
     #[test]
     pub fn non_string() {
-        let r = string_consumer(&[Token::kwd("null")], 0).unwrap();
+        let r = string_consumer(&[Token::kwd("null", 0, 0)], 0).unwrap();
         let e = ConsumerResponse::new(0, None);
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn string() {
-        let r = string_consumer(&[Token::str("test")], 0).unwrap();
+        let r = string_consumer(&[Token::str("test", 0, 0)], 0).unwrap();
         let e = ConsumerResponse::new(1, Some(Node::new_str("test")));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn at_offset() {
-        let inp = &[Token::kwd("null"), Token::str("test")];
+        let inp = &[Token::kwd("null", 0, 0), Token::str("test", 0, 0)];
         let r = string_consumer(inp, 1).unwrap();
         let e = ConsumerResponse::new(1, Some(Node::new_str("test")));
 

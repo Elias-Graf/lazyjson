@@ -14,10 +14,7 @@ pub fn keyword_literal_consumer(
             let slice = &inp[offset..end];
 
             if slice == keyword {
-                let tok = Some(Token {
-                    typ: TokenType::KeywordLiteral,
-                    val: String::from(slice),
-                });
+                let tok = Some(Token::kwd(&String::from(slice), offset, offset + k_len));
 
                 return Ok(ConsumerResponse { cons: k_len, tok });
             }
@@ -53,10 +50,7 @@ mod tests {
         let r = keyword_literal_consumer(val, 4).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            tok: Some(Token {
-                typ: TokenType::KeywordLiteral,
-                val: String::from("false"),
-            }),
+            tok: Some(Token::kwd("false", 4, 9)),
         };
 
         assert_eq!(r, e)
@@ -73,12 +67,10 @@ mod tests {
     fn consume_and_assert_keyword(val: &str) {
         let val = &String::from(val);
         let r = keyword_literal_consumer(val, 0).unwrap();
+        let len = val.chars().count();
         let e = ConsumerResponse {
-            cons: val.chars().count(),
-            tok: Some(Token {
-                typ: TokenType::KeywordLiteral,
-                val: String::from(val),
-            }),
+            cons: len,
+            tok: Some(Token::kwd(val, 0, len)),
         };
 
         assert_eq!(r, e);

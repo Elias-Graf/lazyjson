@@ -1,6 +1,6 @@
 use super::{
     error::{ErrorKind, TokenizationError},
-    ConsumerResponse, Token, TokenType,
+    ConsumerResponse, Token,
 };
 
 pub fn number_literal_consumer(
@@ -31,10 +31,7 @@ pub fn number_literal_consumer(
     let mut tok = None;
 
     if cons != 0 {
-        tok = Some(Token {
-            typ: TokenType::NumberLiteral,
-            val,
-        });
+        tok = Some(Token::num(&val, offset, offset + cons));
     }
 
     return Ok(ConsumerResponse { cons, tok });
@@ -56,10 +53,7 @@ pub mod tests {
         let r = number_literal_consumer(&"1234".to_string(), 0).unwrap();
         let e = ConsumerResponse {
             cons: 4,
-            tok: Some(Token {
-                typ: TokenType::NumberLiteral,
-                val: "1234".to_string(),
-            }),
+            tok: Some(Token::num("1234", 0, 4)),
         };
 
         assert_eq!(r, e);
@@ -69,10 +63,7 @@ pub mod tests {
         let r = number_literal_consumer(&"1234.5678".to_string(), 0).unwrap();
         let e = ConsumerResponse {
             cons: 9,
-            tok: Some(Token {
-                typ: TokenType::NumberLiteral,
-                val: "1234.5678".to_string(),
-            }),
+            tok: Some(Token::num("1234.5678", 0, 9)),
         };
 
         assert_eq!(r, e);
@@ -82,10 +73,7 @@ pub mod tests {
         let r = number_literal_consumer(&"    1".to_string(), 4).unwrap();
         let e = ConsumerResponse {
             cons: 1,
-            tok: Some(Token {
-                typ: TokenType::NumberLiteral,
-                val: "1".to_string(),
-            }),
+            tok: Some(Token::num("1", 4, 5)),
         };
 
         assert_eq!(r, e);

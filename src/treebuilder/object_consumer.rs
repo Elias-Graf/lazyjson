@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     pub fn non_object() {
-        let r = object_consumer(&[Token::kwd("null")], 0).unwrap();
+        let r = object_consumer(&[Token::kwd("null", 0, 0)], 0).unwrap();
         let e = ConsumerResponse {
             cons: 0,
             node: None,
@@ -118,50 +118,50 @@ mod tests {
     }
     #[test]
     pub fn empty_object() {
-        let r = object_consumer(&[Token::sep("{"), Token::sep("}")], 0).unwrap();
+        let r = object_consumer(&[Token::sep("{", 0, 0), Token::sep("}", 0, 0)], 0).unwrap();
         let e = ConsumerResponse {
             cons: 2,
-            node: Some(Node::new_obj(HashMap::new()))
+            node: Some(Node::new_obj(HashMap::new())),
         };
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn unterminated_object() {
-        let r = object_consumer(&[Token::sep("{")], 0).unwrap_err();
+        let r = object_consumer(&[Token::sep("{", 0, 0)], 0).unwrap_err();
         let e = TreebuilderError::new_unterminated_cont(NodeType::Object);
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn single_keyword_entry() {
-        let r_false = object_consumer(&gen_input(Token::kwd("false")), 0).unwrap();
+        let r_false = object_consumer(&gen_input(Token::kwd("false", 0, 0)), 0).unwrap();
         let e_false = gen_exp(Node::new_bool(false));
 
         assert_eq!(r_false, e_false);
 
-        let r_true = object_consumer(&gen_input(Token::kwd("true")), 0).unwrap();
+        let r_true = object_consumer(&gen_input(Token::kwd("true", 0, 0)), 0).unwrap();
         let e_true = gen_exp(Node::new_bool(true));
 
         assert_eq!(r_true, e_true);
 
-        let r_null = object_consumer(&gen_input(Token::kwd("null")), 0).unwrap();
+        let r_null = object_consumer(&gen_input(Token::kwd("null", 0, 0)), 0).unwrap();
         let e_null = gen_exp(Node::new_null());
 
         assert_eq!(r_null, e_null);
 
-        let r_string = object_consumer(&gen_input(Token::str("test string")), 0).unwrap();
+        let r_string = object_consumer(&gen_input(Token::str("test string", 0, 0)), 0).unwrap();
         let e_string = gen_exp(Node::new_str("test string"));
 
         assert_eq!(r_string, e_string);
 
         fn gen_input(val_tok: Token) -> Vec<Token> {
             vec![
-                Token::sep("{"),
-                Token::str("keyword_key"),
-                Token::op(":"),
+                Token::sep("{", 0, 0),
+                Token::str("keyword_key", 0, 0),
+                Token::op(":", 0, 0),
                 val_tok,
-                Token::sep("}"),
+                Token::sep("}", 0, 0),
             ]
         }
         fn gen_exp(val_node: Node) -> ConsumerResponse {
@@ -178,11 +178,11 @@ mod tests {
     #[test]
     pub fn single_number_entry() {
         let inp = &[
-            Token::sep("{"),
-            Token::str("number_key"),
-            Token::op(":"),
-            Token::num("123.456"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::str("number_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::num("123.456", 0, 0),
+            Token::sep("}", 0, 0),
         ];
 
         let mut entries = HashMap::new();
@@ -192,7 +192,7 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            node: Some(Node::new_obj(entries))
+            node: Some(Node::new_obj(entries)),
         };
 
         assert_eq!(r, e);
@@ -200,11 +200,11 @@ mod tests {
     #[test]
     pub fn single_string_entry() {
         let inp = &[
-            Token::sep("{"),
-            Token::str("string_key"),
-            Token::op(":"),
-            Token::str("string_value"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::str("string_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::str("string_value", 0, 0),
+            Token::sep("}", 0, 0),
         ];
 
         let mut entries = HashMap::new();
@@ -214,7 +214,7 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            node: Some(Node::new_obj(entries))
+            node: Some(Node::new_obj(entries)),
         };
 
         assert_eq!(r, e);
@@ -222,12 +222,12 @@ mod tests {
     #[test]
     pub fn single_array_entry() {
         let inp = &[
-            Token::sep("{"),
-            Token::str("array_key"),
-            Token::op(":"),
-            Token::sep("["),
-            Token::sep("]"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::str("array_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::sep("[", 0, 0),
+            Token::sep("]", 0, 0),
+            Token::sep("}", 0, 0),
         ];
 
         let mut entries = HashMap::new();
@@ -245,15 +245,15 @@ mod tests {
     #[test]
     pub fn nested_object() {
         let inp = &[
-            Token::sep("{"),
-            Token::str("object_key"),
-            Token::op(":"),
-            Token::sep("{"),
-            Token::str("inner_key"),
-            Token::op(":"),
-            Token::str("inner_val"),
-            Token::sep("}"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::str("object_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::sep("{", 0, 0),
+            Token::str("inner_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::str("inner_val", 0, 0),
+            Token::sep("}", 0, 0),
+            Token::sep("}", 0, 0),
         ];
 
         let mut inner_entries = HashMap::new();
@@ -262,15 +262,12 @@ mod tests {
 
         let mut entries = HashMap::new();
 
-        entries.insert(
-            String::from("object_key"),
-            Node::new_obj(inner_entries)
-        );
+        entries.insert(String::from("object_key"), Node::new_obj(inner_entries));
 
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 9,
-            node: Some(Node::new_obj(entries))
+            node: Some(Node::new_obj(entries)),
         };
 
         assert_eq!(r, e);
@@ -278,24 +275,24 @@ mod tests {
     #[test]
     pub fn multiple_entries() {
         let inp = &[
-            Token::sep("{"),
-            Token::str("keyword_key"),
-            Token::op(":"),
-            Token::kwd("null"),
-            Token::sep(","),
-            Token::str("number_key"),
-            Token::op(":"),
-            Token::num("123.456"),
-            Token::sep(","),
-            Token::str("string_key"),
-            Token::op(":"),
-            Token::str("string value"),
-            Token::sep(","),
-            Token::str("object_key"),
-            Token::op(":"),
-            Token::sep("{"),
-            Token::sep("}"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::str("keyword_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::str("number_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::num("123.456", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::str("string_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::str("string value", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::str("object_key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::sep("{", 0, 0),
+            Token::sep("}", 0, 0),
+            Token::sep("}", 0, 0),
         ];
 
         let r = object_consumer(inp, 0).unwrap();
@@ -309,7 +306,7 @@ mod tests {
 
         let e = ConsumerResponse {
             cons: inp.len(),
-            node: Some(Node::new_obj(entries))
+            node: Some(Node::new_obj(entries)),
         };
 
         assert_eq!(r, e);
@@ -317,43 +314,43 @@ mod tests {
     #[test]
     pub fn invalid_key_token() {
         let inp = &[
-            Token::sep("{"),
-            Token::kwd("null"),
-            Token::op(":"),
-            Token::kwd("null"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::op(":", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::sep("}", 0, 0),
         ];
         let r = object_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::new_exp_obj_key(Token::kwd("null"));
+        let e = TreebuilderError::new_exp_obj_key(Token::kwd("null", 0, 0));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn invalid_assignment_token() {
         let inp = &[
-            Token::sep("{"),
-            Token::str("key"),
-            Token::kwd("null"),
-            Token::kwd("null"),
-            Token::sep("}"),
+            Token::sep("{", 0, 0),
+            Token::str("key", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::kwd("null", 0, 0),
+            Token::sep("}", 0, 0),
         ];
         let r = object_consumer(inp, 0).unwrap_err();
-        let e = TreebuilderError::new_exp_assign(Token::kwd("null"));
+        let e = TreebuilderError::new_exp_assign(Token::kwd("null", 0, 0));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn invalid_value_token() {
-        test(Token::op(":"));
-        test(Token::sep(","));
+        test(Token::op(":", 0, 0));
+        test(Token::sep(",", 0, 0));
 
         fn test(val_tok: Token) {
             let inp = &[
-                Token::sep("{"),
-                Token::str("key"),
-                Token::op(":"),
+                Token::sep("{", 0, 0),
+                Token::str("key", 0, 0),
+                Token::op(":", 0, 0),
                 val_tok.clone(),
-                Token::sep("}"),
+                Token::sep("}", 0, 0),
             ];
 
             let r = object_consumer(inp, 0).unwrap_err();

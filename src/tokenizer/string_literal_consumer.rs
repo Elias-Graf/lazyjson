@@ -1,6 +1,6 @@
 use super::{
     error::{ErrorKind, TokenizationError},
-    ConsumerResponse, Token, TokenType,
+    ConsumerResponse, Token,
 };
 
 pub fn string_literal_consumer(
@@ -41,10 +41,7 @@ pub fn string_literal_consumer(
 
     Ok(ConsumerResponse {
         cons,
-        tok: Some(Token {
-            typ: TokenType::StringLiteral,
-            val,
-        }),
+        tok: Some(Token::str(&val, offset, offset + cons)),
     })
 }
 
@@ -72,10 +69,7 @@ mod tests {
         let r = string_literal_consumer(&"\"hello \\\" world\"".to_string(), 0).unwrap();
         let e = ConsumerResponse {
             cons: 16,
-            tok: Some(Token {
-                typ: TokenType::StringLiteral,
-                val: "hello \" world".to_string(),
-            }),
+            tok: Some(Token::str("hello \" world", 0, 16)),
         };
 
         assert_eq!(r, e);
@@ -92,12 +86,10 @@ mod tests {
     fn consume_and_assert_string(val: &str) {
         let val = &val.to_string();
         let r = string_literal_consumer(val, 0).unwrap();
+        let len = val.chars().count();
         let e = ConsumerResponse {
-            cons: val.chars().count(),
-            tok: Some(Token {
-                typ: TokenType::StringLiteral,
-                val: val[1..val.chars().count() - 1].to_string(),
-            }),
+            cons: len,
+            tok: Some(Token::str(&val[1..len - 1], 0, len)),
         };
         assert_eq!(r, e);
     }
