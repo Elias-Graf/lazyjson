@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::{
     consumer_response::ConsumerResponse,
     error::TreebuilderError,
-    node::{ContainerNode, Node, NodeType, ObjectNode},
+    node::{Node, NodeType},
     value_consumer::value_consumer,
 };
 use crate::tokenizer::{Token, TokenType};
@@ -82,9 +82,7 @@ pub fn object_consumer(
 
     Ok(ConsumerResponse {
         cons: cons,
-        node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-            entries,
-        )))),
+        node: Some(Node::new_obj(entries)),
     })
 }
 
@@ -123,9 +121,7 @@ mod tests {
         let r = object_consumer(&[Token::sep("{"), Token::sep("}")], 0).unwrap();
         let e = ConsumerResponse {
             cons: 2,
-            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-                HashMap::new(),
-            )))),
+            node: Some(Node::new_obj(HashMap::new()))
         };
 
         assert_eq!(r, e);
@@ -196,9 +192,7 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-                entries,
-            )))),
+            node: Some(Node::new_obj(entries))
         };
 
         assert_eq!(r, e);
@@ -220,9 +214,7 @@ mod tests {
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 5,
-            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-                entries,
-            )))),
+            node: Some(Node::new_obj(entries))
         };
 
         assert_eq!(r, e);
@@ -272,15 +264,13 @@ mod tests {
 
         entries.insert(
             String::from("object_key"),
-            Node::Container(ContainerNode::Object(ObjectNode::new(inner_entries))),
+            Node::new_obj(inner_entries)
         );
 
         let r = object_consumer(inp, 0).unwrap();
         let e = ConsumerResponse {
             cons: 9,
-            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-                entries,
-            )))),
+            node: Some(Node::new_obj(entries))
         };
 
         assert_eq!(r, e);
@@ -319,9 +309,7 @@ mod tests {
 
         let e = ConsumerResponse {
             cons: inp.len(),
-            node: Some(Node::Container(ContainerNode::Object(ObjectNode::new(
-                entries,
-            )))),
+            node: Some(Node::new_obj(entries))
         };
 
         assert_eq!(r, e);
