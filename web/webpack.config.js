@@ -16,5 +16,8 @@ module.exports = {
     },
     output: { filename: "bundle.js", path: path.resolve(__dirname, "dist") },
     plugins: [new HtmlWebpackPlugin()],
-    resolve: { extensions: [".tsx", ".ts", ".js"] },
+    resolve: {
+        alias: { "@lazyjson": path.resolve(__dirname, "../pkg/lazyjson") },
+        extensions: [".tsx", ".ts", ".js"],
+    },
 };
