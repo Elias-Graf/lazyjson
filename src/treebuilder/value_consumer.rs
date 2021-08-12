@@ -39,50 +39,56 @@ mod tests {
 
     #[test]
     pub fn keywords() {
-        let r = value_consumer(&[Token::kwd("false", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_bool(false)));
+        let tok = Token::kwd("false", 0, 0);
+        let r = value_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_bool(false, tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn number() {
-        let r = value_consumer(&[Token::num("99.22", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_num("99.22")));
+        let tok = Token::num("99.22", 0, 0);
+        let r = value_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_num("99.22", tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn string() {
-        let r = value_consumer(&[Token::str("test", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_str("test")));
+        let tok = Token::str("test", 0, 0);
+        let r = value_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_str("test", tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn array() {
-        let r = value_consumer(&[Token::sep("[", 0, 0), Token::sep("]", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(2, Some(Node::new_arr(Vec::new())));
+        let inp = vec![Token::sep("[", 0, 0), Token::sep("]", 0, 0)];
+        let r = value_consumer(&inp.clone(), 0).unwrap();
+        let e = ConsumerResponse::new(2, Some(Node::new_arr(Vec::new(), inp)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn object() {
-        let r = value_consumer(&[Token::sep("{", 0, 0), Token::sep("}", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(2, Some(Node::new_obj(HashMap::new())));
+        let inp = vec![Token::sep("{", 0, 0), Token::sep("}", 0, 0)];
+        let r = value_consumer(&inp.clone(), 0).unwrap();
+        let e = ConsumerResponse::new(2, Some(Node::new_obj(HashMap::new(), inp)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn at_offset() {
+        let str_tok = Token::str("desired value", 0, 0);
         let inp = &[
             Token::kwd("null", 0, 0),
             Token::kwd("null", 0, 0),
             Token::kwd("null", 0, 0),
-            Token::str("desired value", 0, 0),
+            str_tok.clone(),
         ];
 
         let r = value_consumer(inp, 3).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_str("desired value")));
+        let e = ConsumerResponse::new(1, Some(Node::new_str("desired value", str_tok)));
 
         assert_eq!(r, e);
     }
