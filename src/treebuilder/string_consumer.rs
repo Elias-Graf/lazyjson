@@ -11,7 +11,7 @@ pub fn string_consumer(
 
     Ok(match tok.typ {
         TokenType::StringLiteral => {
-            let n = Node::new_str(tok.val.as_str());
+            let n = Node::new_str(tok.val.as_str(), tok.clone());
             ConsumerResponse::new(1, Some(n))
         }
         _ => ConsumerResponse::new(0, None),
@@ -31,16 +31,18 @@ mod tests {
     }
     #[test]
     pub fn string() {
-        let r = string_consumer(&[Token::str("test", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_str("test")));
+        let tok = Token::str("test", 0, 0);
+        let r = string_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_str("test", tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn at_offset() {
-        let inp = &[Token::kwd("null", 0, 0), Token::str("test", 0, 0)];
+        let tok = Token::str("test", 0, 0);
+        let inp = &[Token::kwd("null", 0, 0), tok.clone()];
         let r = string_consumer(inp, 1).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_str("test")));
+        let e = ConsumerResponse::new(1, Some(Node::new_str("test", tok)));
 
         assert_eq!(r, e);
     }

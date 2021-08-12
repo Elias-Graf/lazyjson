@@ -15,9 +15,15 @@ pub fn keyword_consumer(
     }
 
     match tok.val.as_str() {
-        "false" => Ok(ConsumerResponse::new(1, Some(Node::new_bool(false)))),
-        "null" => Ok(ConsumerResponse::new(1, Some(Node::new_null()))),
-        "true" => Ok(ConsumerResponse::new(1, Some(Node::new_bool(true)))),
+        "false" => Ok(ConsumerResponse::new(
+            1,
+            Some(Node::new_bool(false, tok.clone())),
+        )),
+        "null" => Ok(ConsumerResponse::new(1, Some(Node::new_null(tok.clone())))),
+        "true" => Ok(ConsumerResponse::new(
+            1,
+            Some(Node::new_bool(true, tok.clone())),
+        )),
         _ => Err(TreebuilderError::new_unknown_kwd(tok.clone())),
     }
 }
@@ -35,30 +41,34 @@ mod tests {
     }
     #[test]
     pub fn consume_false() {
-        let r = keyword_consumer(&[Token::kwd("false", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_bool(false)));
+        let tok = Token::kwd("false", 0, 0);
+        let r = keyword_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_bool(false, tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn consume_null() {
-        let r = keyword_consumer(&[Token::kwd("null", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_null()));
+        let tok = Token::kwd("null", 0, 0);
+        let r = keyword_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_null(tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn consume_true() {
-        let r = keyword_consumer(&[Token::kwd("true", 0, 0)], 0).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_bool(true)));
+        let tok = Token::kwd("true", 0, 0);
+        let r = keyword_consumer(&[tok.clone()], 0).unwrap();
+        let e = ConsumerResponse::new(1, Some(Node::new_bool(true, tok)));
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn at_offset() {
-        let inp = &[Token::str("placeholder", 0, 0), Token::kwd("null", 0, 0)];
+        let null_tok = Token::kwd("null", 0, 0);
+        let inp = &[Token::str("placeholder", 0, 0), null_tok.clone()];
         let r = keyword_consumer(inp, 1).unwrap();
-        let e = ConsumerResponse::new(1, Some(Node::new_null()));
+        let e = ConsumerResponse::new(1, Some(Node::new_null(null_tok)));
 
         assert_eq!(r, e);
     }
