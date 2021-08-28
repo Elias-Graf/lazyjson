@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
 
 use crate::tokenizer::Token;
@@ -9,43 +8,42 @@ pub enum NodeType {
     Object,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ArrayNode {
     entries: Vec<Node>,
     toks: Vec<Token>,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct BoolNode {
     val: bool,
     tok: Token,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct NullNode {
     tok: Token,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct NumberNode {
     val: String,
     tok: Token,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ObjectNode {
     entries: HashMap<String, Node>,
     toks: Vec<Token>,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct StringNode {
     val: String,
     tok: Token,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "typ")]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Node {
     Array(ArrayNode),
     Bool(BoolNode),

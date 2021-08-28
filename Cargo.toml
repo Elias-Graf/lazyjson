@@ -10,5 +10,21 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.76" }
+
+[dependencies.web-sys]
+version = "0.3.53"
+features = [
+    "console",
+    "EventListener",
+    "InputEvent",
+    "EventTarget",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Window",
+    "Document",
+    "CssStyleDeclaration",
+    "HtmlTextAreaElement",
+    "HtmlPreElement",
+]

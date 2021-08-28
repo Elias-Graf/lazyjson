@@ -1,23 +1,12 @@
-import init, { parse } from "@lazyjson";
-import renderNode from "./renderNode";
+import init, { run } from "@lazyjson";
+
+const { body } = document;
+
+document.documentElement.style.height = body.style.height = "100%";
+document.documentElement.style.width = body.style.width = "100%";
+
+body.style.display = "flex";
 
 await init();
 
-const input = document.createElement("textarea");
-const output = document.createElement("div");
-
-document.body.append(input);
-document.body.append(output);
-
-let inputDebounceTimeout: number;
-input.addEventListener("input", () => {
-    window.clearTimeout(inputDebounceTimeout);
-
-    inputDebounceTimeout = window.setTimeout(() => {
-        while (output.firstChild) output.removeChild(output.firstChild);
-
-        const node = parse(input.value);
-
-        output.append(renderNode(node));
-    }, 200);
-});
+run(body);

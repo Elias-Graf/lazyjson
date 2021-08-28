@@ -1,10 +1,6 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize, Copy)]
+#[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     KeywordLiteral,
     NumberLiteral,
@@ -13,17 +9,14 @@ pub enum TokenType {
     StringLiteral,
 }
 
-#[wasm_bindgen]
-#[derive(Eq, PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct Token {
     pub to: usize,
     pub from: usize,
     pub typ: TokenType,
-    #[wasm_bindgen(skip)]
     pub val: String,
 }
 
-#[wasm_bindgen]
 impl Token {
     /// Create a token of type [`TokenType::KeywordLiteral`].
     pub fn kwd(val: &str, from: usize, to: usize) -> Token {
@@ -69,11 +62,6 @@ impl Token {
             typ: TokenType::StringLiteral,
             val: val.into(),
         }
-    }
-
-    #[wasm_bindgen(getter)]
-    pub fn val(&self) -> String {
-        self.val.clone()
     }
 }
 
