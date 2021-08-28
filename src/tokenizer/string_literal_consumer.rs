@@ -1,7 +1,4 @@
-use super::{
-    error::{ErrorKind, TokenizationError},
-    ConsumerResponse, Token,
-};
+use super::{error::TokenizationError, ConsumerResponse, Token};
 
 pub fn string_literal_consumer(
     inp: &String,
@@ -17,7 +14,10 @@ pub fn string_literal_consumer(
 
     loop {
         if offset + cons >= inp.chars().count() {
-            return Err(TokenizationError::new(ErrorKind::UnterminatedString));
+            return Err(TokenizationError::new_unterminated_string(
+                inp,
+                offset + cons,
+            ));
         }
 
         let c = inp.chars().nth(offset + cons).unwrap();
@@ -76,11 +76,11 @@ mod tests {
     }
     #[test]
     fn consume_unterminated_string() {
-        let rec = string_literal_consumer(&"\"hello world".to_string(), 0)
-            .err()
-            .unwrap();
+        let inp = "\"hello world";
+        let r = string_literal_consumer(&inp.to_string(), 0).unwrap_err();
+        let e = TokenizationError::new_unterminated_string(inp, 12);
 
-        assert_eq!(rec.kind, ErrorKind::UnterminatedString);
+        assert_eq!(r, e);
     }
 
     fn consume_and_assert_string(val: &str) {

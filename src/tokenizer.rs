@@ -25,7 +25,7 @@ pub use self::string_literal_consumer::*;
 mod whitespace_consumer;
 pub use self::whitespace_consumer::*;
 
-pub fn tokenize(inp: &str) -> Vec<Token> {
+pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
     let consumers: &[&dyn Fn(&String, usize) -> Result<ConsumerResponse, TokenizationError>] = &[
         &keyword_literal_consumer,
         &number_literal_consumer,
@@ -41,10 +41,10 @@ pub fn tokenize(inp: &str) -> Vec<Token> {
     'outer: loop {
         for consumer in consumers {
             if cons >= inp.chars().count() {
-                return toks;
+                return Ok(toks);
             }
 
-            let res = consumer(&inp.into(), cons).unwrap();
+            let res = consumer(&inp.into(), cons)?;
 
             if res.cons > 0 {
                 cons += res.cons;
@@ -57,10 +57,7 @@ pub fn tokenize(inp: &str) -> Vec<Token> {
             }
         }
 
-        panic!(
-            "failed to parse character {}",
-            inp.chars().nth(cons).unwrap()
-        );
+        return Err(TokenizationError::new_unhandled_character(inp, cons));
     }
 }
 
@@ -70,8 +67,8 @@ mod tests {
 
     #[test]
     pub fn primitive() {
-        let r = tokenize("false");
-        let e: Vec<Token> = [Token::kwd("false", 0, 5)].into();
+        let r = tokenize("false").unwrap();
+        let e = [Token::kwd("false", 0, 5)];
 
         assert_eq!(r, e);
     }
@@ -164,9 +161,8 @@ mod tests {
     }
 
     fn tokenize_and_assert(inp: &str, exp: &[Token]) {
-        let ret = tokenize(inp);
-        let exp_v: Vec<Token> = exp.into();
+        let r = tokenize(inp).unwrap();
 
-        assert_eq!(ret, exp_v);
+        assert_eq!(r, exp);
     }
 }

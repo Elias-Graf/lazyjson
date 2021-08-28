@@ -1,7 +1,4 @@
-use super::{
-    error::{ErrorKind, TokenizationError},
-    ConsumerResponse, Token,
-};
+use super::{error::TokenizationError, ConsumerResponse, Token};
 
 pub fn number_literal_consumer(
     inp: &String,
@@ -18,7 +15,10 @@ pub fn number_literal_consumer(
             }
 
             if has_decimal {
-                return Err(TokenizationError::new(ErrorKind::MultipleDecimalPoints));
+                return Err(TokenizationError::new_multiple_decimal_points(
+                    inp,
+                    offset + cons,
+                ));
             }
 
             has_decimal = true;
@@ -80,10 +80,10 @@ pub mod tests {
     }
     #[test]
     pub fn consumer_number_with_two_decimal_points() {
-        let r = number_literal_consumer(&"1.2.3".to_string(), 0)
-            .err()
-            .unwrap();
+        let inp = "1.2.3";
+        let r = number_literal_consumer(&inp.to_string(), 0).unwrap_err();
+        let e = TokenizationError::new_multiple_decimal_points(inp, 3);
 
-        assert_eq!(r.kind, ErrorKind::MultipleDecimalPoints);
+        assert_eq!(r, e);
     }
 }

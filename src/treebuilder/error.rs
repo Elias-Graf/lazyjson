@@ -1,4 +1,5 @@
 use crate::tokenizer::Token;
+use std::{error::Error, fmt};
 
 use super::node::NodeType;
 
@@ -42,6 +43,14 @@ pub enum TreebuilderError {
     UnterminatedContainer(UnterminatedContainer),
 }
 
+impl Error for TreebuilderError {}
+
+impl fmt::Display for TreebuilderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<DISPLAY NOT IMPLEMENTED>")
+    }
+}
+
 impl TreebuilderError {
     pub fn new_exp_assign(unexp: Token) -> TreebuilderError {
         TreebuilderError::ExpectedAssignment(ExpectedAssignment { unexp })
@@ -65,13 +74,5 @@ impl TreebuilderError {
 
     pub fn new_unterminated_cont(node_typ: NodeType) -> TreebuilderError {
         TreebuilderError::UnterminatedContainer(UnterminatedContainer { node_typ })
-    }
-}
-
-impl UnterminatedContainer {
-    #[deprecated(note = "Use [`TreebuilderError::new_unterminated_container`] instead")]
-    /// Please use [`TreebuilderError::new_unterminated_container()`] instead.
-    pub fn new(node_typ: NodeType) -> UnterminatedContainer {
-        UnterminatedContainer { node_typ }
     }
 }

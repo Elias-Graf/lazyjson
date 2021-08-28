@@ -1,30 +1,92 @@
-use std::fmt::{self};
+use core::fmt;
+use std::error::Error;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ErrorKind {
-    MultipleDecimalPoints,
-    UnterminatedString,
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct MultipleDecimalPoints {
+    msg: String,
 }
 
-impl fmt::Display for ErrorKind {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+impl fmt::Display for MultipleDecimalPoints {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct TokenizationError {
-    pub kind: ErrorKind,
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct UnhandledCharacter {
+    msg: String,
+}
+
+impl fmt::Display for UnhandledCharacter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct UnterminatedString {
+    msg: String,
+}
+
+impl fmt::Display for UnterminatedString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.msg)
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum TokenizationError {
+    MultipleDecimalPoints(MultipleDecimalPoints),
+    UnhandledCharacter(UnhandledCharacter),
+    UnterminatedString(UnterminatedString),
+}
+
+impl Error for TokenizationError {}
+
+impl fmt::Display for TokenizationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TokenizationError::MultipleDecimalPoints(e) => e.fmt(f),
+            TokenizationError::UnhandledCharacter(e) => e.fmt(f),
+            TokenizationError::UnterminatedString(e) => e.fmt(f),
+        }
+    }
 }
 
 impl TokenizationError {
-    pub fn new(kind: ErrorKind) -> TokenizationError {
-        TokenizationError { kind }
+    /// Creates a new tokenization error of type
+    /// [`TokenizationError::MultipleDecimalPoints`].
+    pub fn new_multiple_decimal_points(inp: &str, idx: usize) -> TokenizationError {
+        TokenizationError::MultipleDecimalPoints(MultipleDecimalPoints {
+            msg: format!(
+                "multiple decimal points at {} ('{}')",
+                idx,
+                inp.chars().nth(idx).unwrap(),
+            ),
+        })
     }
-}
+    /// Creates a new tokenization error of type
+    /// [`TokenizationError::UnhandledCharacter`].
+    pub fn new_unhandled_character(inp: &str, idx: usize) -> TokenizationError {
+        TokenizationError::UnhandledCharacter(UnhandledCharacter {
+            msg: format!(
+                "unhandled character at {} ('{}')",
+                idx,
+                inp.chars().nth(idx).unwrap(),
+            ),
+        })
+    }
+    /// Creates a new tokenization error of type
+    /// [`TokenizationError::UnterminatedString`].
+    pub fn new_unterminated_string(inp: &str, idx: usize) -> TokenizationError {
+        let prev_idx = idx - 1;
 
-impl fmt::Display for TokenizationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "tokenization error \"{}\"", self.kind)
+        TokenizationError::UnterminatedString(UnterminatedString {
+            msg: format!(
+                "unterminated string after {} ('{}')",
+                prev_idx,
+                inp.chars().nth(prev_idx).unwrap(),
+            ),
+        })
     }
 }
