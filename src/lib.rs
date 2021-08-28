@@ -6,18 +6,6 @@ pub mod tokenizer;
 pub mod treebuilder;
 
 #[wasm_bindgen]
-extern "C" {
-    // Use `js_namespace` here to bind `console.log(..)` instead of just
-    // `log(..)`
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
-macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
-
-#[wasm_bindgen]
 pub fn run(cont: &HtmlElement) -> Result<(), JsValue> {
     let window = web_sys::window().expect("could not get window handle");
     let document = window.document().expect("could not get document handle");
@@ -43,11 +31,13 @@ pub fn run(cont: &HtmlElement) -> Result<(), JsValue> {
             .dyn_into::<web_sys::HtmlTextAreaElement>()
             .unwrap();
 
-        let tree = parse(input.value().as_str());
-
-        console_log!("{:?}", tree);
-
-        output.set_inner_text(format!("{:?}", tree).as_str());
+        output.set_inner_text(
+            match parse(input.value().as_str()) {
+                Ok(tree) => format!("{:?}", tree),
+                Err(err) => format!("{}", err),
+            }
+            .as_str(),
+        );
     }) as Box<dyn FnMut(_)>);
 
     input.add_event_listener_with_callback("input", &cb.as_ref().unchecked_ref())?;
