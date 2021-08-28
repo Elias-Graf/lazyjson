@@ -23,7 +23,12 @@ pub fn array_consumer(toks: &[Token], offset: usize) -> Result<ConsumerResponse,
 
     let mut entries: Vec<Node> = Vec::new();
 
-    let maybe_close = toks.get(consumed_toks.len() + offset).unwrap();
+    let maybe_close = match toks.get(consumed_toks.len() + offset) {
+        None => {
+            return Err(TreebuilderError::new_unterminated_arr());
+        }
+        t => t.unwrap(),
+    };
 
     if maybe_close.typ == TokenType::Separator && maybe_close.val == "]" {
         consumed_toks.push(maybe_close.clone());
@@ -49,7 +54,12 @@ pub fn array_consumer(toks: &[Token], offset: usize) -> Result<ConsumerResponse,
         consumed_toks.append(&mut other);
         entries.push(child);
 
-        let sep_or_close = toks.get(consumed_toks.len() + offset).unwrap();
+        let sep_or_close = match toks.get(consumed_toks.len() + offset) {
+            None => {
+                return Err(TreebuilderError::new_unterminated_arr());
+            }
+            t => t.unwrap(),
+        };
 
         if sep_or_close.typ == TokenType::Separator && sep_or_close.val == "," {
             consumed_toks.push(sep_or_close.clone());
@@ -247,6 +257,20 @@ mod tests {
         let e = TreebuilderError::new_exp_sep_or_close(Token::kwd("null", 0, 0));
 
         assert_eq!(r, e);
+    }
+    #[test]
+    pub fn unterminated() {
+        let inputs = &[
+            vec![Token::sep("[", 0, 0)],
+            vec![Token::sep("[", 0, 0), Token::kwd("null", 0, 0)],
+        ];
+
+        for inp in inputs {
+            let r = array_consumer(inp, 0).unwrap_err();
+            let e = TreebuilderError::new_unterminated_arr();
+
+            assert_eq!(r, e);
+        }
     }
     #[test]
     pub fn invalid_value() {

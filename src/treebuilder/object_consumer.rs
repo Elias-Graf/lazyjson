@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use super::{
-    consumer_response::ConsumerResponse,
-    error::TreebuilderError,
-    node::{Node, NodeType},
+    consumer_response::ConsumerResponse, error::TreebuilderError, node::Node,
     value_consumer::value_consumer,
 };
 use crate::tokenizer::{Token, TokenType};
@@ -31,7 +29,7 @@ pub fn object_consumer(
     loop {
         let mut left = match toks.get(consumed_tokens.len() + offset) {
             None => {
-                return Err(TreebuilderError::new_unterminated_cont(NodeType::Object));
+                return Err(TreebuilderError::new_unterminated_obj());
             }
             t => t.unwrap(),
         };
@@ -49,7 +47,7 @@ pub fn object_consumer(
 
                 left = match toks.get(consumed_tokens.len() + offset) {
                     None => {
-                        return Err(TreebuilderError::new_unterminated_cont(NodeType::Object));
+                        return Err(TreebuilderError::new_unterminated_obj());
                     }
                     t => t.unwrap(),
                 };
@@ -134,7 +132,7 @@ mod tests {
     #[test]
     pub fn unterminated_object() {
         let r = object_consumer(&[Token::sep("{", 0, 0)], 0).unwrap_err();
-        let e = TreebuilderError::new_unterminated_cont(NodeType::Object);
+        let e = TreebuilderError::new_unterminated_obj();
 
         assert_eq!(r, e);
     }

@@ -3,12 +3,6 @@ use std::{collections::HashMap, fmt::Debug};
 use crate::tokenizer::Token;
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub enum NodeType {
-    Array,
-    Object,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ArrayNode {
     entries: Vec<Node>,
     toks: Vec<Token>,
