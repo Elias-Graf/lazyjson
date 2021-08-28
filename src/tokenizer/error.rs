@@ -13,6 +13,15 @@ impl fmt::Display for MultipleDecimalPoints {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
+pub struct NoInput {}
+
+impl fmt::Display for NoInput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "tokenizer did not receive any input")
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct UnhandledCharacter {
     msg: String,
 }
@@ -37,6 +46,7 @@ impl fmt::Display for UnterminatedString {
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenizationError {
     MultipleDecimalPoints(MultipleDecimalPoints),
+    NoInput(NoInput),
     UnhandledCharacter(UnhandledCharacter),
     UnterminatedString(UnterminatedString),
 }
@@ -47,6 +57,7 @@ impl fmt::Display for TokenizationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TokenizationError::MultipleDecimalPoints(e) => e.fmt(f),
+            TokenizationError::NoInput(e) => e.fmt(f),
             TokenizationError::UnhandledCharacter(e) => e.fmt(f),
             TokenizationError::UnterminatedString(e) => e.fmt(f),
         }
@@ -64,6 +75,11 @@ impl TokenizationError {
                 inp.chars().nth(idx).unwrap(),
             ),
         })
+    }
+    /// Creates a new tokenization error of type
+    /// [`TokenizationError::NoInput`].
+    pub fn new_no_input() -> TokenizationError {
+        TokenizationError::NoInput(NoInput {})
     }
     /// Creates a new tokenization error of type
     /// [`TokenizationError::UnhandledCharacter`].

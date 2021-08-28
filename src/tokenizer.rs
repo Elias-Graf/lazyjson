@@ -26,6 +26,10 @@ mod whitespace_consumer;
 pub use self::whitespace_consumer::*;
 
 pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
+    if inp.chars().count() == 0 {
+        return Err(TokenizationError::new_no_input());
+    }
+
     let consumers: &[&dyn Fn(&String, usize) -> Result<ConsumerResponse, TokenizationError>] = &[
         &keyword_literal_consumer,
         &number_literal_consumer,
@@ -65,6 +69,13 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
 mod tests {
     use super::*;
 
+    #[test]
+    pub fn no_input() {
+        let r = tokenize("").unwrap_err();
+        let e = TokenizationError::new_no_input();
+
+        assert_eq!(r, e);
+    }
     #[test]
     pub fn primitive() {
         let r = tokenize("false").unwrap();
