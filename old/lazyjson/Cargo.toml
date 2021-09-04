@@ -1,0 +1,9 @@
+[package]
+name = "lazyjson"
+version = "0.1.0"
+authors = ["Elias <p.elias.graf@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "lazyjson"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

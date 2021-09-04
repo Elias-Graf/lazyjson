@@ -1,0 +1,31 @@
+[package]
+name = "lazyjson-wasm"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.76" }
+lazyjson = { path = "../lazyjson" }
+
+[dependencies.web-sys]
+version = "0.3.53"
+features = [
+    "console",
+    "EventListener",
+    "InputEvent",
+    "EventTarget",
+    "Element",
+    "HtmlElement",
+    "Node",
+    "Window",
+    "Document",
+    "CssStyleDeclaration",
+    "HtmlTextAreaElement",
+    "HtmlPreElement",
+    "HtmlSpanElement"
+]

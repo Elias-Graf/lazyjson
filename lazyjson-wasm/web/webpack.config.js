@@ -10,7 +10,7 @@ module.exports = {
         port: 9000,
     },
     entry: "./index.ts",
-    experiments: { topLevelAwait: true },
+    experiments: { asyncWebAssembly: true },
     module: {
         rules: [{ test: /\.ts?$/, use: "ts-loader", exclude: /node_modules/ }],
     },
