@@ -9,12 +9,13 @@ impl ToHtml for ArrayNode {
         let cont = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
 
         if self.entries.len() == 0 {
+            cont.set_class_name("value empty");
             cont.set_inner_text("<empty>");
 
             return Ok(cont);
         }
 
-        cont.style().set_property("margin-left", "2em")?;
+        cont.set_class_name("value array");
 
         for ent in &self.entries {
             let ent_elm = ent.to_html(doc)?;

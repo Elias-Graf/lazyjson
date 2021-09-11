@@ -12,10 +12,13 @@ module.exports = {
     entry: "./index.ts",
     experiments: { asyncWebAssembly: true },
     module: {
-        rules: [{ test: /\.ts?$/, use: "ts-loader", exclude: /node_modules/ }],
+        rules: [
+            { test: /\.s[ac]ss$/i, use: ["style-loader", "css-loader", "sass-loader"] },
+            { test: /\.ts?$/, use: "ts-loader", exclude: /node_modules/ },
+        ],
     },
     output: { filename: "bundle.js", path: path.resolve(__dirname, "dist") },
-    plugins: [new HtmlWebpackPlugin()],
+    plugins: [new HtmlWebpackPlugin({})],
     resolve: {
         alias: { "@lazyjson": path.resolve(__dirname, "../pkg/lazyjson") },
         extensions: [".tsx", ".ts", ".js"],

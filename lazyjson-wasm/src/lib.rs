@@ -2,7 +2,7 @@ use std::error::Error;
 
 use node_to_html::ToHtml;
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{Document, Event, HtmlElement};
+use web_sys::{Document, Event, HtmlElement, InputEvent};
 
 mod node_to_html;
 
@@ -16,10 +16,9 @@ pub fn run(cont: &HtmlElement) -> Result<(), JsValue> {
         .create_element("pre")?
         .dyn_into::<web_sys::HtmlPreElement>()?;
 
-    input.style().set_property("flex", "1")?;
+    output.set_class_name("lazyjson");
 
-    output.style().set_property("flex", "1")?;
-    output.style().set_property("overflow", "scroll")?;
+    input.style().set_property("flex", "1")?;
 
     cont.append_child(&input)?;
     cont.append_child(&output)?;

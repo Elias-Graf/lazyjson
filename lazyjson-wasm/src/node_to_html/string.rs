@@ -7,10 +7,11 @@ use super::ToHtml;
 
 impl ToHtml for StringNode {
     fn to_html(&self, doc: &Document) -> Result<HtmlSpanElement, wasm_bindgen::JsValue> {
-        let eml = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
+        let elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
 
-        eml.set_inner_text(format!("{}", self.val).as_str());
+        elm.set_class_name("value string");
+        elm.set_inner_text(format!("{}", self.val).as_str());
 
-        Ok(eml)
+        Ok(elm)
     }
 }

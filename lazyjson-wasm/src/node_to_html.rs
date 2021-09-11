@@ -15,20 +15,22 @@ pub trait ToHtml {
 
 impl ToHtml for Node {
     fn to_html(&self, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
-        let cont_elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
+        let node_elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
         let nam_elm = get_nam_elm(self, doc)?;
         let val_elm = get_val_elm(self, doc)?;
 
-        cont_elm.append_child(&nam_elm)?;
-        cont_elm.append_child(&val_elm)?;
+        node_elm.set_class_name("node");
+        node_elm.append_child(&nam_elm)?;
+        node_elm.append_child(&val_elm)?;
 
-        Ok(cont_elm)
+        Ok(node_elm)
     }
 }
 
 fn get_nam_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
     let elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
 
+    elm.set_class_name("name");
     elm.set_inner_text(format!("[{}]", node.get_typ_str()).as_str());
 
     Ok(elm)

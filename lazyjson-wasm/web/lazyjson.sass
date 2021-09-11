@@ -1,0 +1,37 @@
+*
+  margin: 0
+  padding: 0
+
+.lazyjson
+  background-color: #0D0D0D
+  color: white
+  flex: 1
+  .node
+    .name
+      color: #9b9b9b
+      display: inline-block
+    .value
+      &.array
+        display: flex
+        flex-direction: column
+        margin-left: 2em
+      &.bool
+        color: #59AAFF
+      &.empty
+        font-style: italic
+        color: #cccccc
+      &.null
+        color: #59AAFF
+      &.number
+        color: #A5FEFF
+      &.object
+        display: flex
+        flex-direction: column
+        margin-left: 2em
+        .entry
+          display: flex
+          gap: 1em
+      &.string
+        color: #FFAF48
+        &::before,&::after
+          content: '"'
