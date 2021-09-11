@@ -2,7 +2,7 @@ use std::error::Error;
 
 use node_to_html::ToHtml;
 use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{Document, Event, HtmlElement, InputEvent};
+use web_sys::{Document, Event, HtmlElement};
 
 mod node_to_html;
 
