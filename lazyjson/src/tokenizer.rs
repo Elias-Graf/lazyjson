@@ -31,11 +31,11 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
     }
 
     let consumers: &[&dyn Fn(&String, usize) -> Result<ConsumerResponse, TokenizationError>] = &[
-        &keyword_literal_consumer,
-        &number_literal_consumer,
-        &operator_consumer,
-        &separator_consumer,
-        &string_literal_consumer,
+        &old_keyword_literal_consumer,
+        &old_number_literal_consumer,
+        &old_operator_consumer,
+        &old_separator_consumer,
+        &old_string_literal_consumer,
         &whitespace_consumer,
     ];
 

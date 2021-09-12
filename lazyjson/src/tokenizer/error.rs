@@ -22,6 +22,15 @@ impl fmt::Display for NoInput {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
+pub struct OutOfBounds {}
+
+impl fmt::Display for OutOfBounds {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "tried to read the next character but there was none")
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct UnhandledCharacter {
     msg: String,
 }
@@ -47,6 +56,7 @@ impl fmt::Display for UnterminatedString {
 pub enum TokenizationError {
     MultipleDecimalPoints(MultipleDecimalPoints),
     NoInput(NoInput),
+    OutOfBounds(OutOfBounds),
     UnhandledCharacter(UnhandledCharacter),
     UnterminatedString(UnterminatedString),
 }
@@ -58,6 +68,7 @@ impl fmt::Display for TokenizationError {
         match self {
             TokenizationError::MultipleDecimalPoints(e) => e.fmt(f),
             TokenizationError::NoInput(e) => e.fmt(f),
+            TokenizationError::OutOfBounds(o) => o.fmt(f),
             TokenizationError::UnhandledCharacter(e) => e.fmt(f),
             TokenizationError::UnterminatedString(e) => e.fmt(f),
         }
@@ -80,6 +91,11 @@ impl TokenizationError {
     /// [`TokenizationError::NoInput`].
     pub fn new_no_input() -> TokenizationError {
         TokenizationError::NoInput(NoInput {})
+    }
+    /// Creates a new tokenization error of type
+    /// [`TokenizationError::OutOfBounds`].
+    pub fn new_out_of_bounds() -> TokenizationError {
+        TokenizationError::OutOfBounds(OutOfBounds {})
     }
     /// Creates a new tokenization error of type
     /// [`TokenizationError::UnhandledCharacter`].
