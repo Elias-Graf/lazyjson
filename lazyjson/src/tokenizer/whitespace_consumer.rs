@@ -1,25 +1,6 @@
-use std::{iter::Peekable, num::NonZeroI32, str::CharIndices};
+use std::{iter::Peekable, str::CharIndices};
 
-use crate::peak_while::PeekWhileExt;
-
-use super::{error::TokenizationError, ConsumerResponse, Token};
-
-#[deprecated(note = "use `whitespace_consumer` instead")]
-pub fn old_whitespace_consumer(
-    inp: &String,
-    offset: usize,
-) -> Result<ConsumerResponse, TokenizationError> {
-    let mut cons = 0;
-
-    for c in inp[offset..].chars() {
-        match c {
-            c if c.is_whitespace() => cons += 1,
-            _ => break,
-        }
-    }
-
-    Ok(ConsumerResponse { cons, tok: None })
-}
+use super::{error::TokenizationError, Token};
 
 pub fn whitespace_consumer(
     inp: &mut Peekable<CharIndices>,
@@ -95,45 +76,5 @@ mod tests {
         whitespace_consumer(inp).unwrap();
 
         assert_eq!(inp.next().unwrap(), (3, '1'));
-    }
-}
-
-#[cfg(test)]
-mod old_tests {
-    use super::*;
-
-    #[test]
-    pub fn non_whitespace() {
-        consume_and_expect_length("false", 0);
-    }
-    #[test]
-    pub fn single_space() {
-        consume_and_expect_length(" ", 1);
-    }
-    #[test]
-    pub fn multiple_spaces() {
-        consume_and_expect_length("   ", 3);
-    }
-    #[test]
-    pub fn tabs() {
-        consume_and_expect_length("\t", 1);
-    }
-    #[test]
-    pub fn newline() {
-        consume_and_expect_length("\n", 1);
-    }
-    #[test]
-    pub fn at_offset() {
-        let r = old_whitespace_consumer(&String::from("false "), 5).unwrap();
-        let e = ConsumerResponse { cons: 1, tok: None };
-
-        assert_eq!(r, e);
-    }
-
-    fn consume_and_expect_length(inp: &str, cons: usize) {
-        let r = old_whitespace_consumer(&String::from(inp), 0).unwrap();
-        let e = ConsumerResponse { cons, tok: None };
-
-        assert_eq!(r, e);
     }
 }

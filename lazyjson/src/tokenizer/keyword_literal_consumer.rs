@@ -1,37 +1,8 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use super::{consumer_response::ConsumerResponse, error::TokenizationError, token::*};
+use super::{error::TokenizationError, token::*};
 
 use crate::peak_while::PeekWhileExt;
-
-static KEYWORDS: &'static [&'static str] = &["false", "null", "true"];
-
-#[deprecated(note = "use `keyword_literal_consumer`")]
-pub fn old_keyword_literal_consumer(
-    inp: &String,
-    offset: usize,
-) -> Result<ConsumerResponse, TokenizationError> {
-    for &keyword in KEYWORDS {
-        let k_len = keyword.chars().count();
-        let end = offset + k_len;
-
-        if is_inp_long_enough(inp, end) {
-            let slice = &inp[offset..end];
-
-            if slice == keyword {
-                let tok = Some(Token::kwd(&String::from(slice), offset, offset + k_len));
-
-                return Ok(ConsumerResponse { cons: k_len, tok });
-            }
-        }
-    }
-
-    Ok(ConsumerResponse { cons: 0, tok: None })
-}
-
-fn is_inp_long_enough(inp: &String, offset: usize) -> bool {
-    inp.chars().count() >= offset
-}
 
 pub fn keyword_literal_consumer(
     inp: &mut Peekable<CharIndices>,
@@ -107,55 +78,6 @@ mod tests {
         let inp_iter = &mut inp.char_indices().peekable();
         let r = keyword_literal_consumer(inp_iter).unwrap();
         let e = Some(Token::kwd(inp, 0, inp.chars().count()));
-        assert_eq!(r, e);
-    }
-}
-
-#[cfg(test)]
-mod old_tests {
-    use super::*;
-
-    #[test]
-    pub fn consume_false() {
-        consume_and_assert_keyword("false");
-    }
-    #[test]
-    pub fn consume_null() {
-        consume_and_assert_keyword("null");
-    }
-    #[test]
-    pub fn consume_true() {
-        consume_and_assert_keyword("true");
-    }
-    #[test]
-    pub fn consume_at_offset() {
-        let val = &String::from("    false");
-        let r = old_keyword_literal_consumer(val, 4).unwrap();
-        let e = ConsumerResponse {
-            cons: 5,
-            tok: Some(Token::kwd("false", 4, 9)),
-        };
-
-        assert_eq!(r, e)
-    }
-    #[test]
-    pub fn consume_non_keyword() {
-        let val = &String::from("0");
-        let r = old_keyword_literal_consumer(val, 0).unwrap();
-        let e = ConsumerResponse { cons: 0, tok: None };
-
-        assert_eq!(r, e);
-    }
-
-    fn consume_and_assert_keyword(val: &str) {
-        let val = &String::from(val);
-        let r = old_keyword_literal_consumer(val, 0).unwrap();
-        let len = val.chars().count();
-        let e = ConsumerResponse {
-            cons: len,
-            tok: Some(Token::kwd(val, 0, len)),
-        };
-
         assert_eq!(r, e);
     }
 }
