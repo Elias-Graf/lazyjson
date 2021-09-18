@@ -1,31 +1,132 @@
-pub mod error;
-use self::error::TokenizationError;
-
-mod token;
-pub use self::token::*;
-
 mod consumer_response;
-pub use self::consumer_response::*;
-
+mod error;
 mod keyword_literal_consumer;
-pub use self::keyword_literal_consumer::*;
-
 mod number_literal_consumer;
-pub use self::number_literal_consumer::*;
-
 mod operator_consumer;
-pub use self::operator_consumer::*;
-
 mod separator_consumer;
-pub use self::separator_consumer::*;
-
 mod string_literal_consumer;
-pub use self::string_literal_consumer::*;
-
+mod token;
 mod whitespace_consumer;
-pub use self::whitespace_consumer::*;
+
+use std::iter::Peekable;
+use std::str::CharIndices;
+
+pub use token::{Token, TokenType};
+
+use self::consumer_response::ConsumerResponse;
+use self::error::TokenizationError;
+use self::keyword_literal_consumer::{keyword_literal_consumer, old_keyword_literal_consumer};
+use self::number_literal_consumer::{number_literal_consumer, old_number_literal_consumer};
+use self::operator_consumer::{old_operator_consumer, operator_consumer};
+use self::separator_consumer::{old_separator_consumer, separator_consumer};
+use self::string_literal_consumer::{old_string_literal_consumer, string_literal_consumer};
+use self::whitespace_consumer::{old_whitespace_consumer, whitespace_consumer};
+
+type Consumer = dyn Fn(&mut Peekable<CharIndices>) -> Result<Option<Token>, TokenizationError>;
 
 pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
+    if inp.is_empty() {
+        return Err(TokenizationError::new_no_input());
+    }
+
+    let consumers: &[&Consumer] = &[
+        &whitespace_consumer,
+        &keyword_literal_consumer,
+        &number_literal_consumer,
+        &operator_consumer,
+        &separator_consumer,
+        &string_literal_consumer,
+    ];
+
+    let mut inp_char_indices = inp.char_indices().peekable();
+    let mut toks = Vec::new();
+
+    'o: while inp_char_indices.peek().is_some() {
+        for consumer in consumers {
+            let tok = consumer(&mut inp_char_indices)?;
+
+            if tok.is_some() {
+                toks.push(tok.unwrap());
+
+                continue 'o;
+            }
+        }
+
+        panic!("{:?} was not consumed", inp_char_indices.next());
+    }
+
+    Ok(toks)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty() {
+        let r = tokenize("").unwrap_err();
+        let e = TokenizationError::new_no_input();
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn keywords() {
+        let r = tokenize("false null true").unwrap();
+        let e = [
+            Token::kwd("false", 0, 5),
+            Token::kwd("null", 6, 10),
+            Token::kwd("true", 11, 15),
+        ];
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn numbers() {
+        let r = tokenize("123 123.456").unwrap();
+        let e = [Token::num("123", 0, 3), Token::num("123.456", 4, 11)];
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn operators() {
+        let r = tokenize(":").unwrap();
+        let e = [Token::op(":", 0, 1)];
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn separators() {
+        let r = tokenize(", [ ] { }").unwrap();
+        let e = [
+            Token::sep(",", 0, 1),
+            Token::sep("[", 2, 3),
+            Token::sep("]", 4, 5),
+            Token::sep("{", 6, 7),
+            Token::sep("}", 8, 9),
+        ];
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn strings() {
+        let r = tokenize("\"\" \"hello, world\" \"\\\"cool\\\"\"").unwrap();
+        let e = [
+            Token::str("", 0, 2),
+            Token::str("hello, world", 3, 17),
+            Token::str("\"cool\"", 18, 28),
+        ];
+
+        assert_eq!(r, e);
+    }
+}
+
+#[deprecated(note = "please use `tokenize`")]
+pub fn old_tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
     if inp.chars().count() == 0 {
         return Err(TokenizationError::new_no_input());
     }
@@ -36,7 +137,7 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
         &old_operator_consumer,
         &old_separator_consumer,
         &old_string_literal_consumer,
-        &whitespace_consumer,
+        &old_whitespace_consumer,
     ];
 
     let mut toks = Vec::new();
@@ -66,19 +167,19 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
 }
 
 #[cfg(test)]
-mod tests {
+mod old_tests {
     use super::*;
 
     #[test]
     pub fn no_input() {
-        let r = tokenize("").unwrap_err();
+        let r = old_tokenize("").unwrap_err();
         let e = TokenizationError::new_no_input();
 
         assert_eq!(r, e);
     }
     #[test]
     pub fn primitive() {
-        let r = tokenize("false").unwrap();
+        let r = old_tokenize("false").unwrap();
         let e = [Token::kwd("false", 0, 5)];
 
         assert_eq!(r, e);
@@ -172,7 +273,7 @@ mod tests {
     }
 
     fn tokenize_and_assert(inp: &str, exp: &[Token]) {
-        let r = tokenize(inp).unwrap();
+        let r = old_tokenize(inp).unwrap();
 
         assert_eq!(r, exp);
     }

@@ -1,5 +1,7 @@
 use std::{iter::Peekable, str::CharIndices};
 
+use crate::peak_while::PeekWhileExt;
+
 use super::{error::TokenizationError, ConsumerResponse, Token};
 
 #[deprecated(note = "use `number_literal_consumer`")]
@@ -61,7 +63,7 @@ pub fn number_literal_consumer(
 }
 
 fn read_until_non_numeric(inp: &mut Peekable<CharIndices>) -> Vec<(usize, char)> {
-    inp.take_while(|(_, c)| c.is_digit(10) || c == &'.')
+    inp.peek_while(|(_, c)| c.is_digit(10) || c == &'.')
         .collect()
 }
 
@@ -94,6 +96,15 @@ pub mod tests {
         let e = None;
 
         assert_eq!(r, e);
+    }
+
+    #[test]
+    fn checking_does_not_consume() {
+        let inp = &mut "a".char_indices().peekable();
+
+        number_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next().unwrap(), (0, 'a'));
     }
 
     #[test]

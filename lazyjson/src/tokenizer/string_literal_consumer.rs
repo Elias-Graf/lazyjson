@@ -68,7 +68,7 @@ pub fn string_literal_consumer(
     let str = read_until_string_end(inp);
     let val = convert_to_string(&str);
     let from = start_of_string.0;
-    let to = str.last().unwrap().0 + CLOSING_QUOTE_AND_INCLUSIVE;
+    let to = str.last().unwrap_or(&(0, ' ')).0 + CLOSING_QUOTE_AND_INCLUSIVE;
 
     Ok(Some(Token::str(&val, from, to)))
 }
@@ -125,7 +125,26 @@ mod tests {
     }
 
     #[test]
-    fn valid_at_start() {
+    fn checking_does_not_consume() {
+        let inp = &mut "1".char_indices().peekable();
+
+        string_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next().unwrap(), (0, '1'));
+    }
+
+    #[test]
+    fn empty_string() {
+        let val = "\"\"";
+        let inp = &mut val.char_indices().peekable();
+        let r = string_literal_consumer(inp).unwrap();
+        let e = Some(Token::str("", 0, 2));
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn normal_string() {
         let val = "\"Hello, World 👋\"";
         let inp = &mut val.char_indices().peekable();
         let r = string_literal_consumer(inp).unwrap();
@@ -135,7 +154,7 @@ mod tests {
     }
 
     #[test]
-    fn valid_at_start_with_escaped_quote() {
+    fn containing_quotes() {
         let val = "\"Hello, \\\"World\\\" 👋\"";
         let inp = &mut val.char_indices().peekable();
         let r = string_literal_consumer(inp).unwrap();

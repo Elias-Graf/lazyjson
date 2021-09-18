@@ -23,15 +23,16 @@ pub fn old_separator_consumer(
 pub fn separator_consumer(
     inp: &mut Peekable<CharIndices>,
 ) -> Result<Option<Token>, TokenizationError> {
-    if inp.peek().is_none() {
-        return Err(TokenizationError::new_out_of_bounds());
-    }
+    match inp.peek() {
+        None => Err(TokenizationError::new_out_of_bounds()),
+        Some((_, c)) => match c {
+            ',' | '[' | ']' | '{' | '}' => {
+                let (i, c) = inp.next().unwrap();
 
-    let (i, c) = inp.next().unwrap();
-
-    match c {
-        ',' | '[' | ']' | '{' | '}' => Ok(Some(Token::sep(&c.to_string(), i, i + 1))),
-        _ => Ok(None),
+                Ok(Some(Token::sep(c.to_string().as_str(), i, i + 1)))
+            }
+            _ => Ok(None),
+        },
     }
 }
 
@@ -55,6 +56,15 @@ mod tests {
         let e = None;
 
         assert_eq!(r, e);
+    }
+
+    #[test]
+    fn checking_does_not_consume() {
+        let inp = &mut "1".char_indices().peekable();
+
+        separator_consumer(inp).unwrap();
+
+        assert_eq!(inp.next().unwrap(), (0, '1'));
     }
 
     #[test]

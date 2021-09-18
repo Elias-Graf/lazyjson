@@ -2,6 +2,8 @@ use std::{iter::Peekable, str::CharIndices};
 
 use super::{consumer_response::ConsumerResponse, error::TokenizationError, token::*};
 
+use crate::peak_while::PeekWhileExt;
+
 static KEYWORDS: &'static [&'static str] = &["false", "null", "true"];
 
 #[deprecated(note = "use `keyword_literal_consumer`")]
@@ -52,7 +54,7 @@ pub fn keyword_literal_consumer(
 }
 
 fn read_until_non_alphabetical(inp: &mut Peekable<CharIndices>) -> Vec<(usize, char)> {
-    inp.take_while(|(_, c)| c.is_alphabetic()).collect()
+    inp.peek_while(|(_, c)| c.is_alphabetic()).collect()
 }
 
 fn is_not_keyword(kwd: &Vec<(usize, char)>) -> bool {
@@ -84,6 +86,15 @@ mod tests {
         let e = None;
 
         assert_eq!(r, e);
+    }
+
+    #[test]
+    fn checking_does_not_consume() {
+        let inp = &mut "1".char_indices().peekable();
+
+        keyword_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next().unwrap(), (0, '1'));
     }
 
     #[test]
