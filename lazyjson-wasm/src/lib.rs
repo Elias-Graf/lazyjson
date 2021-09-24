@@ -82,7 +82,7 @@ fn parse(
     inp: &str,
 ) -> Result<lazyjson::treebuilder::consumer_response::ConsumerResponse, Box<dyn Error>> {
     let toks = lazyjson::tokenizer::tokenize(inp)?;
-    let tree = lazyjson::treebuilder::value_consumer::value_consumer(&toks, 0)?;
+    let tree = lazyjson::treebuilder::value_consumer::old_value_consumer(&toks, 0)?;
 
     Ok(tree)
 }

@@ -1,10 +1,10 @@
-use lazyjson::treebuilder::node::ArrayNode;
+use lazyjson::treebuilder::old_node::OldArrayNode;
 use wasm_bindgen::JsCast;
 use web_sys::{Document, HtmlSpanElement};
 
 use super::ToHtml;
 
-impl ToHtml for ArrayNode {
+impl ToHtml for OldArrayNode {
     fn to_html(&self, doc: &Document) -> Result<web_sys::HtmlSpanElement, wasm_bindgen::JsValue> {
         let cont = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
 

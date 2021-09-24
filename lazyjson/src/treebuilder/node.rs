@@ -1,111 +1,92 @@
-use core::fmt;
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::tokenizer::Token;
-
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct ArrayNode {
+pub struct ArraySpecific {
     pub entries: Vec<Node>,
-    toks: Vec<Token>,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct BoolNode {
+pub struct BoolSpecific {
     pub val: bool,
-    tok: Token,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct NullNode {
-    tok: Token,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct NumberNode {
+pub struct NumberSpecific {
     pub val: String,
-    tok: Token,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct ObjectNode {
+pub struct ObjectSpecific {
     pub entries: HashMap<String, Node>,
-    toks: Vec<Token>,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct StringNode {
+pub struct StringSpecific {
     pub val: String,
-    tok: Token,
-}
-
-impl fmt::Display for StringNode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.val)
-    }
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub enum Node {
-    Array(ArrayNode),
-    Bool(BoolNode),
-    Null(NullNode),
-    Number(NumberNode),
-    Object(ObjectNode),
-    String(StringNode),
+pub enum NodeSpecific {
+    Array(ArraySpecific),
+    Bool(BoolSpecific),
+    Null,
+    Number(NumberSpecific),
+    Object(ObjectSpecific),
+    String(StringSpecific),
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct Node {
+    pub specific: NodeSpecific,
+    pub from: usize,
+    pub to: usize,
 }
 
 impl Node {
-    /// Create a new Node of type [`Node::Array`].
-    pub fn new_arr(entries: Vec<Node>, toks: Vec<Token>) -> Node {
-        Node::Array(ArrayNode { entries, toks })
-    }
-    /// Create a new Node of type [`Node::Bool`].
-    pub fn new_bool(val: bool, tok: Token) -> Node {
-        Node::Bool(BoolNode { val, tok })
-    }
-    /// Create a new Node of type [`Node::Null`].
-    pub fn new_null(tok: Token) -> Node {
-        Node::Null(NullNode { tok })
-    }
-    /// Create a new Node of type [`Node::Number`].
-    pub fn new_num(val: &str, tok: Token) -> Node {
-        Node::Number(NumberNode {
-            val: val.to_string(),
-            tok,
-        })
-    }
-    /// Create a new Node of type [`Node::Object`].
-    pub fn new_obj(entries: HashMap<String, Node>, toks: Vec<Token>) -> Node {
-        Node::Object(ObjectNode { entries, toks })
-    }
-    /// Create a new Node of type [`Node::String`].
-    pub fn new_str(val: &str, tok: Token) -> Node {
-        Node::String(StringNode {
-            val: val.to_string(),
-            tok,
-        })
-    }
-
-    /// Get the string representation of a node type.
-    pub fn get_typ_str(&self) -> &str {
-        match self {
-            Node::Array(_) => "array",
-            Node::Bool(_) => "bool",
-            Node::Null(_) => "null",
-            Node::Number(_) => "number",
-            Node::Object(_) => "object",
-            Node::String(_) => "string",
+    pub fn new_arr(entries: Vec<Node>, from: usize, to: usize) -> Node {
+        Node {
+            specific: NodeSpecific::Array(ArraySpecific { entries }),
+            from,
+            to,
         }
     }
-    /// Get the tokens that were consumed to create this array.
-    pub fn toks(&self) -> Vec<Token> {
-        match self {
-            Node::Array(n) => n.toks.clone(),
-            Node::Bool(n) => vec![n.tok.clone()],
-            Node::Null(n) => vec![n.tok.clone()],
-            Node::Number(n) => vec![n.tok.clone()],
-            Node::Object(n) => n.toks.clone(),
-            Node::String(n) => vec![n.tok.clone()],
+    pub fn new_bool(val: bool, from: usize, to: usize) -> Node {
+        Node {
+            specific: NodeSpecific::Bool(BoolSpecific { val }),
+            from,
+            to,
+        }
+    }
+    pub fn new_null(from: usize, to: usize) -> Node {
+        Node {
+            specific: NodeSpecific::Null,
+            from,
+            to,
+        }
+    }
+    pub fn new_num(val: &str, from: usize, to: usize) -> Node {
+        Node {
+            specific: NodeSpecific::Number(NumberSpecific {
+                val: val.to_string(),
+            }),
+            from,
+            to,
+        }
+    }
+    pub fn new_obj(entries: HashMap<String, Node>, from: usize, to: usize) -> Node {
+        Node {
+            specific: NodeSpecific::Object(ObjectSpecific { entries }),
+            from,
+            to,
+        }
+    }
+    pub fn new_str(val: &str, from: usize, to: usize) -> Node {
+        Node {
+            specific: NodeSpecific::String(StringSpecific {
+                val: val.to_string(),
+            }),
+            from,
+            to,
         }
     }
 }

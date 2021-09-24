@@ -8,7 +8,8 @@ mod string_literal_consumer;
 mod token;
 mod whitespace_consumer;
 
-use std::iter::Peekable;
+use std::iter::{Enumerate, Peekable};
+use std::slice::Iter;
 use std::str::CharIndices;
 
 pub use token::{Token, TokenType};
@@ -20,6 +21,8 @@ use self::operator_consumer::operator_consumer;
 use self::separator_consumer::separator_consumer;
 use self::string_literal_consumer::string_literal_consumer;
 use self::whitespace_consumer::whitespace_consumer;
+
+pub type TokenIndices<'a> = Enumerate<Iter<'a, Token>>;
 
 type Consumer = dyn Fn(&mut Peekable<CharIndices>) -> Result<Option<Token>, TokenizationError>;
 

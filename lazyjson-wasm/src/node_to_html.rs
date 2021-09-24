@@ -1,4 +1,4 @@
-use lazyjson::treebuilder::node::Node;
+use lazyjson::treebuilder::old_node::OldNode;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{Document, HtmlSpanElement};
 
@@ -13,7 +13,7 @@ pub trait ToHtml {
     fn to_html(&self, doc: &Document) -> Result<HtmlSpanElement, JsValue>;
 }
 
-impl ToHtml for Node {
+impl ToHtml for OldNode {
     fn to_html(&self, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
         let node_elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
         let nam_elm = get_nam_elm(self, doc)?;
@@ -27,7 +27,7 @@ impl ToHtml for Node {
     }
 }
 
-fn get_nam_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
+fn get_nam_elm(node: &OldNode, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
     let elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
 
     elm.set_class_name("name");
@@ -36,13 +36,13 @@ fn get_nam_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> 
     Ok(elm)
 }
 
-fn get_val_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
+fn get_val_elm(node: &OldNode, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
     match node {
-        Node::Array(a) => a.to_html(doc),
-        Node::Bool(b) => b.to_html(doc),
-        Node::Null(n) => n.to_html(doc),
-        Node::Number(n) => n.to_html(doc),
-        Node::Object(o) => o.to_html(doc),
-        Node::String(s) => s.to_html(doc),
+        OldNode::Array(a) => a.to_html(doc),
+        OldNode::Bool(b) => b.to_html(doc),
+        OldNode::Null(n) => n.to_html(doc),
+        OldNode::Number(n) => n.to_html(doc),
+        OldNode::Object(o) => o.to_html(doc),
+        OldNode::String(s) => s.to_html(doc),
     }
 }
