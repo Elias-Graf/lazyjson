@@ -11,6 +11,9 @@ pub struct BoolSpecific {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
+pub struct NullSpecific {}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct NumberSpecific {
     pub val: String,
 }
@@ -29,7 +32,7 @@ pub struct StringSpecific {
 pub enum NodeSpecific {
     Array(ArraySpecific),
     Bool(BoolSpecific),
-    Null,
+    Null(NullSpecific),
     Number(NumberSpecific),
     Object(ObjectSpecific),
     String(StringSpecific),
@@ -59,7 +62,7 @@ impl Node {
     }
     pub fn new_null(from: usize, to: usize) -> Node {
         Node {
-            specific: NodeSpecific::Null,
+            specific: NodeSpecific::Null(NullSpecific {}),
             from,
             to,
         }

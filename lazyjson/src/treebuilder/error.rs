@@ -21,6 +21,14 @@ pub struct TreebuilderErr {
     pub to: usize,
 }
 
+impl fmt::Display for TreebuilderErr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl Error for TreebuilderErr {}
+
 impl TreebuilderErr {
     pub fn new_not_a_key(i: usize) -> TreebuilderErr {
         TreebuilderErr {

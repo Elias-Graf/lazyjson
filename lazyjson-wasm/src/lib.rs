@@ -1,10 +1,11 @@
-use std::error::Error;
-
-use node_to_html::ToHtml;
-use wasm_bindgen::{prelude::*, JsCast};
-use web_sys::{Document, Event, HtmlElement};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::Document;
+use web_sys::{Event, HtmlElement};
 
 mod node_to_html;
+
+use node_to_html::ToHtml;
 
 #[wasm_bindgen]
 pub fn run(cont: &HtmlElement) -> Result<(), JsValue> {
@@ -40,16 +41,10 @@ pub fn run(cont: &HtmlElement) -> Result<(), JsValue> {
                 return;
             }
         };
-        let node = match resp.node {
+        let node = match resp {
             Some(n) => n,
             None => {
-                output.set_inner_text(
-                    format!(
-                        "no node in consumer response, consumed {} tokens",
-                        resp.cons
-                    )
-                    .as_str(),
-                );
+                output.set_inner_text(format!("no node in consumer response",).as_str());
                 return;
             }
         };
@@ -80,9 +75,11 @@ fn get_document() -> Document {
 
 fn parse(
     inp: &str,
-) -> Result<lazyjson::treebuilder::consumer_response::ConsumerResponse, Box<dyn Error>> {
+) -> Result<Option<lazyjson::treebuilder::node::Node>, Box<dyn std::error::Error>> {
     let toks = lazyjson::tokenizer::tokenize(inp)?;
-    let tree = lazyjson::treebuilder::value_consumer::old_value_consumer(&toks, 0)?;
+    let tree = lazyjson::treebuilder::value_consumer::value_consumer(
+        &mut toks.iter().enumerate().peekable(),
+    )?;
 
     Ok(tree)
 }
