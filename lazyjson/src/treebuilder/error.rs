@@ -44,7 +44,7 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
-    pub fn new_not_val(i: usize) -> TreebuilderErr {
+    pub fn new_not_a_val(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::NotAVal,
             from: i,

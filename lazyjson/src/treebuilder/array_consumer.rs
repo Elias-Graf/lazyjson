@@ -1,78 +1,82 @@
 use std::iter::Peekable;
 
-use crate::tokenizer::{TokenIndices, TokenType};
+use crate::tokenizer::{Token, TokenIndices, TokenType};
 
 use super::{error::TreebuilderErr, node::Node, value_consumer::value_consumer};
 
-// TODO: refactor this hot garbage 😉
 pub fn array_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>, TreebuilderErr> {
-    if toks.peek().is_none() {
-        return Err(TreebuilderErr::new_out_of_bounds());
-    }
+    let &(opn_i, opn_tok) = toks.peek().ok_or(TreebuilderErr::new_out_of_bounds())?;
 
-    let (_, opn_tok) = toks.peek().unwrap();
-
-    if opn_tok.typ != TokenType::Separator || opn_tok.val != "[" {
+    if !is_arr_opn(opn_tok) {
         return Ok(None);
+    } else {
+        toks.next();
     }
 
-    let (opn_i, _) = toks.next().unwrap();
-    let mut entries = Vec::new();
-    let mut last_i = opn_i;
+    let &(peek_i, peek_t) = toks
+        .peek()
+        .ok_or(TreebuilderErr::new_unterminated_arr(opn_i, opn_i + 1))?;
 
-    let (peek_i, peek_t) = match toks.peek() {
-        None => return Err(TreebuilderErr::new_unterminated_arr(opn_i, last_i + 1)),
-        Some(p) => p,
-    };
-
-    if peek_t.typ == TokenType::Separator && peek_t.val == "]" {
-        last_i = *peek_i;
-
+    if is_arr_cls(peek_t) {
         toks.next();
 
-        return Ok(Some(Node::new_arr(entries, opn_i, last_i + 1)));
+        return Ok(Some(Node::new_arr(Vec::new(), opn_i, peek_i + 1)));
     }
 
+    let mut entries = Vec::new();
+
     loop {
-        match toks.peek() {
-            None => return Err(TreebuilderErr::new_unterminated_arr(opn_i, last_i + 1)),
-            Some(&(i, t)) => {
-                if t.typ == TokenType::Separator && t.val == "]" {
-                    return Err(TreebuilderErr::new_trailing_sep(i - 1));
-                }
-            }
-        };
+        check_for_trailing_sep(toks, opn_i, &entries)?;
 
-        match value_consumer(toks)? {
-            None => panic!(
-                "array consumer expected some sort of value[composition], but received {:?}",
-                toks.peek()
-            ),
-            Some(entry) => {
-                last_i = entry.to;
+        let entry = value_consumer(toks)?.ok_or(TreebuilderErr::new_not_a_val(
+            get_last_tok_idx(&entries) + 1,
+        ))?;
 
-                entries.push(entry);
-            }
-        };
+        entries.push(entry);
 
-        let (peek_i, peek_t) = match toks.peek() {
-            None => return Err(TreebuilderErr::new_unterminated_arr(opn_i, last_i + 1)),
-            Some(p) => p,
-        };
+        let (_, peek_t) = toks.next().ok_or(TreebuilderErr::new_unterminated_arr(
+            opn_i,
+            get_last_tok_idx(&entries),
+        ))?;
 
-        if peek_t.typ == TokenType::Separator && peek_t.val == "]" {
-            last_i = *peek_i;
-
-            toks.next();
-
-            return Ok(Some(Node::new_arr(entries, opn_i, last_i + 1)));
+        if is_arr_cls(peek_t) {
+            let to = get_last_tok_idx(&entries) + 1;
+            return Ok(Some(Node::new_arr(entries, opn_i, to)));
         } else if peek_t.typ != TokenType::Separator || peek_t.val != "," {
-            return Err(TreebuilderErr::new_not_a_sep(last_i));
-        } else {
-            last_i = *peek_i;
-
-            toks.next();
+            return Err(TreebuilderErr::new_not_a_sep(get_last_tok_idx(&entries)));
         }
+    }
+}
+
+fn is_arr_opn(opn_tok: &Token) -> bool {
+    opn_tok.typ == TokenType::Separator && opn_tok.val == "["
+}
+
+fn is_arr_cls(t: &Token) -> bool {
+    t.typ == TokenType::Separator && t.val == "]"
+}
+
+fn check_for_trailing_sep(
+    toks: &mut Peekable<TokenIndices>,
+    opn_i: usize,
+    entries: &Vec<Node>,
+) -> Result<bool, TreebuilderErr> {
+    let &(cls_i, cls_t) = toks.peek().ok_or(TreebuilderErr::new_unterminated_arr(
+        opn_i,
+        get_last_tok_idx(&entries),
+    ))?;
+
+    if is_arr_cls(cls_t) {
+        return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
+    }
+
+    return Ok(false);
+}
+
+fn get_last_tok_idx(entries: &Vec<Node>) -> usize {
+    match entries.last() {
+        None => 0,
+        Some(e) => e.to,
     }
 }
 
@@ -123,6 +127,21 @@ mod tests {
         ];
         let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
         let e = TreebuilderErr::new_not_a_sep(2);
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn invalid_val() {
+        let toks = [
+            Token::sep("[", 0, 0),
+            Token::num("1", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::op(":", 0, 0),
+            Token::sep("]", 0, 0),
+        ];
+        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let e = TreebuilderErr::new_not_a_val(3);
 
         assert_eq!(r, e);
     }

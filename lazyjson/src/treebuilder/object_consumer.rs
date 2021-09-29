@@ -65,7 +65,7 @@ pub fn object_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>
         }
 
         let val = match value_consumer(toks)? {
-            None => return Err(TreebuilderErr::new_not_val(toks.next().unwrap().0)),
+            None => return Err(TreebuilderErr::new_not_a_val(toks.next().unwrap().0)),
             Some(v) => v,
         };
 
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_comma() {
+    fn missing_sep() {
         let toks = [
             Token::sep("{", 0, 0),
             Token::str("key1", 0, 0),
