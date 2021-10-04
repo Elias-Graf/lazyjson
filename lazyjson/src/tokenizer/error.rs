@@ -43,12 +43,13 @@ impl fmt::Display for UnhandledCharacter {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct UnterminatedString {
-    msg: String,
+    pub from: usize,
+    pub to: usize,
 }
 
 impl fmt::Display for UnterminatedString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "{:?}", self)
     }
 }
 
@@ -110,15 +111,7 @@ impl TokenizationError {
     }
     /// Creates a new tokenization error of type
     /// [`TokenizationError::UnterminatedString`].
-    pub fn new_unterminated_string(inp: &str, idx: usize) -> TokenizationError {
-        let prev_idx = idx - 1;
-
-        TokenizationError::UnterminatedString(UnterminatedString {
-            msg: format!(
-                "unterminated string after {} ('{}')",
-                prev_idx,
-                inp.chars().nth(prev_idx).unwrap(),
-            ),
-        })
+    pub fn new_unterminated_str(from: usize, to: usize) -> TokenizationError {
+        TokenizationError::UnterminatedString(UnterminatedString { from, to })
     }
 }
