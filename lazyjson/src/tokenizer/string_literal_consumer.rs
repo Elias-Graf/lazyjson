@@ -29,7 +29,7 @@ fn read_until_string_end(
     loop {
         let next = inp.next().ok_or(TokenizationErr::new_unterminated_str(
             from,
-            from + str.len(),
+            from + str.len() + 1,
         ))?;
         let (i, c) = next;
 
@@ -70,7 +70,7 @@ mod tests {
     fn unterminated() {
         let inp = "\"Hello, World!";
         let r = string_literal_consumer(&mut inp.char_indices().peekable()).unwrap_err();
-        let e = TokenizationErr::new_unterminated_str(0, 13);
+        let e = TokenizationErr::new_unterminated_str(0, 14);
 
         assert_eq!(r, e);
     }
