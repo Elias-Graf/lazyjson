@@ -1,14 +1,14 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use super::{error::TokenizationError, token::*};
+use super::{error::TokenizationErr, token::*};
 
 use crate::peak_while::PeekWhileExt;
 
 pub fn keyword_literal_consumer(
     inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationError> {
+) -> Result<Option<Token>, TokenizationErr> {
     if inp.peek().is_none() {
-        return Err(TokenizationError::new_out_of_bounds());
+        return Err(TokenizationErr::new_out_of_bounds());
     }
 
     let kwd = read_until_non_alphabetical(inp);
@@ -45,7 +45,7 @@ mod tests {
     fn empty() {
         let inp = &mut "".char_indices().peekable();
         let r = keyword_literal_consumer(inp).unwrap_err();
-        let e = TokenizationError::new_out_of_bounds();
+        let e = TokenizationErr::new_out_of_bounds();
 
         assert_eq!(r, e);
     }

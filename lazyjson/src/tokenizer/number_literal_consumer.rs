@@ -2,13 +2,13 @@ use std::{iter::Peekable, str::CharIndices};
 
 use crate::peak_while::PeekWhileExt;
 
-use super::{error::TokenizationError, Token};
+use super::{error::TokenizationErr, Token};
 
 pub fn number_literal_consumer(
     inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationError> {
+) -> Result<Option<Token>, TokenizationErr> {
     if inp.peek().is_none() {
-        return Err(TokenizationError::new_out_of_bounds());
+        return Err(TokenizationErr::new_out_of_bounds());
     }
 
     let num = read_until_non_numeric(inp);
@@ -46,7 +46,7 @@ pub mod tests {
     fn empty() {
         let inp = &mut "".char_indices().peekable();
         let r = number_literal_consumer(inp).unwrap_err();
-        let e = TokenizationError::new_out_of_bounds();
+        let e = TokenizationErr::new_out_of_bounds();
 
         assert_eq!(r, e);
     }

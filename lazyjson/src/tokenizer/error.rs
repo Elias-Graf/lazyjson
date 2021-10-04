@@ -1,117 +1,47 @@
 use core::fmt;
-use std::error::Error;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub struct MultipleDecimalPoints {
-    msg: String,
-}
-
-impl fmt::Display for MultipleDecimalPoints {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.msg)
-    }
+pub enum TokenizationErrTyp {
+    NoInp,
+    OutOfBounds,
+    UnterminatedStr,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub struct NoInput {}
-
-impl fmt::Display for NoInput {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "tokenizer did not receive any input")
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct OutOfBounds {}
-
-impl fmt::Display for OutOfBounds {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "tried to read the next character but there was none")
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct UnhandledCharacter {
-    msg: String,
-}
-
-impl fmt::Display for UnhandledCharacter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.msg)
-    }
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct UnterminatedString {
+pub struct TokenizationErr {
+    pub typ: TokenizationErrTyp,
     pub from: usize,
     pub to: usize,
 }
 
-impl fmt::Display for UnterminatedString {
+impl TokenizationErr {
+    pub fn new_no_inp() -> TokenizationErr {
+        TokenizationErr {
+            typ: TokenizationErrTyp::NoInp,
+            from: usize::MAX,
+            to: usize::MAX,
+        }
+    }
+    pub fn new_out_of_bounds() -> TokenizationErr {
+        TokenizationErr {
+            typ: TokenizationErrTyp::OutOfBounds,
+            from: usize::MAX,
+            to: usize::MAX,
+        }
+    }
+    pub fn new_unterminated_str(from: usize, to: usize) -> TokenizationErr {
+        TokenizationErr {
+            typ: TokenizationErrTyp::UnterminatedStr,
+            from,
+            to,
+        }
+    }
+}
+
+impl fmt::Display for TokenizationErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum TokenizationError {
-    MultipleDecimalPoints(MultipleDecimalPoints),
-    NoInput(NoInput),
-    OutOfBounds(OutOfBounds),
-    UnhandledCharacter(UnhandledCharacter),
-    UnterminatedString(UnterminatedString),
-}
-
-impl Error for TokenizationError {}
-
-impl fmt::Display for TokenizationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            TokenizationError::MultipleDecimalPoints(e) => e.fmt(f),
-            TokenizationError::NoInput(e) => e.fmt(f),
-            TokenizationError::OutOfBounds(o) => o.fmt(f),
-            TokenizationError::UnhandledCharacter(e) => e.fmt(f),
-            TokenizationError::UnterminatedString(e) => e.fmt(f),
-        }
-    }
-}
-
-impl TokenizationError {
-    /// Creates a new tokenization error of type
-    /// [`TokenizationError::MultipleDecimalPoints`].
-    pub fn new_multiple_decimal_points(inp: &str, idx: usize) -> TokenizationError {
-        TokenizationError::MultipleDecimalPoints(MultipleDecimalPoints {
-            msg: format!(
-                "multiple decimal points at {} ('{}')",
-                idx,
-                inp.chars().nth(idx).unwrap(),
-            ),
-        })
-    }
-    /// Creates a new tokenization error of type
-    /// [`TokenizationError::NoInput`].
-    pub fn new_no_input() -> TokenizationError {
-        TokenizationError::NoInput(NoInput {})
-    }
-    /// Creates a new tokenization error of type
-    /// [`TokenizationError::OutOfBounds`].
-    pub fn new_out_of_bounds() -> TokenizationError {
-        TokenizationError::OutOfBounds(OutOfBounds {})
-    }
-    /// Creates a new tokenization error of type
-    /// [`TokenizationError::UnhandledCharacter`].
-    pub fn new_unhandled_character(inp: &str, idx: usize) -> TokenizationError {
-        TokenizationError::UnhandledCharacter(UnhandledCharacter {
-            msg: format!(
-                "unhandled character at {} ('{}')",
-                idx,
-                inp.chars().nth(idx).unwrap(),
-            ),
-        })
-    }
-    /// Creates a new tokenization error of type
-    /// [`TokenizationError::UnterminatedString`].
-    pub fn new_unterminated_str(from: usize, to: usize) -> TokenizationError {
-        TokenizationError::UnterminatedString(UnterminatedString { from, to })
-    }
-}
+impl std::error::Error for TokenizationErr {}

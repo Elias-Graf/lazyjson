@@ -14,7 +14,7 @@ use std::str::CharIndices;
 
 pub use token::{Token, TokenType};
 
-use self::error::TokenizationError;
+use self::error::TokenizationErr;
 use self::keyword_literal_consumer::keyword_literal_consumer;
 use self::number_literal_consumer::number_literal_consumer;
 use self::operator_consumer::operator_consumer;
@@ -24,11 +24,11 @@ use self::whitespace_consumer::whitespace_consumer;
 
 pub type TokenIndices<'a> = Enumerate<Iter<'a, Token>>;
 
-type Consumer = dyn Fn(&mut Peekable<CharIndices>) -> Result<Option<Token>, TokenizationError>;
+type Consumer = dyn Fn(&mut Peekable<CharIndices>) -> Result<Option<Token>, TokenizationErr>;
 
-pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationError> {
+pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
     if inp.is_empty() {
-        return Err(TokenizationError::new_no_input());
+        return Err(TokenizationErr::new_no_inp());
     }
 
     let consumers: &[&Consumer] = &[
@@ -67,7 +67,7 @@ mod tests {
     #[test]
     fn empty() {
         let r = tokenize("").unwrap_err();
-        let e = TokenizationError::new_no_input();
+        let e = TokenizationErr::new_no_inp();
 
         assert_eq!(r, e);
     }

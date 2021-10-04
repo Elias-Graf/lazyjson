@@ -1,12 +1,12 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use super::{error::TokenizationError, Token};
+use super::{error::TokenizationErr, Token};
 
 pub fn whitespace_consumer(
     inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationError> {
+) -> Result<Option<Token>, TokenizationErr> {
     if inp.peek().is_none() {
-        return Err(TokenizationError::new_out_of_bounds());
+        return Err(TokenizationErr::new_out_of_bounds());
     }
 
     while let Some((_, c)) = inp.peek() {
@@ -28,7 +28,7 @@ mod tests {
     fn empty() {
         let inp = &mut "".char_indices().peekable();
         let r = whitespace_consumer(inp).unwrap_err();
-        let e = TokenizationError::new_out_of_bounds();
+        let e = TokenizationErr::new_out_of_bounds();
 
         assert_eq!(r, e);
     }

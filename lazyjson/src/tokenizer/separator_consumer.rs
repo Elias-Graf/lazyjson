@@ -1,12 +1,12 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use super::{error::TokenizationError, Token};
+use super::{error::TokenizationErr, Token};
 
 pub fn separator_consumer(
     inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationError> {
+) -> Result<Option<Token>, TokenizationErr> {
     match inp.peek() {
-        None => Err(TokenizationError::new_out_of_bounds()),
+        None => Err(TokenizationErr::new_out_of_bounds()),
         Some((_, c)) => match c {
             ',' | '[' | ']' | '{' | '}' => {
                 let (i, c) = inp.next().unwrap();
@@ -26,7 +26,7 @@ mod tests {
     fn empty() {
         let inp = &mut "".char_indices().peekable();
         let r = separator_consumer(inp).unwrap_err();
-        let e = TokenizationError::new_out_of_bounds();
+        let e = TokenizationErr::new_out_of_bounds();
 
         assert_eq!(r, e);
     }

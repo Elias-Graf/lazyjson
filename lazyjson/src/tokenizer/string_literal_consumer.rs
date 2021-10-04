@@ -1,12 +1,12 @@
 use std::{iter::Peekable, str::CharIndices};
 
-use super::{error::TokenizationError, Token};
+use super::{error::TokenizationErr, Token};
 
 pub fn string_literal_consumer(
     inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationError> {
+) -> Result<Option<Token>, TokenizationErr> {
     if inp.peek().is_none() {
-        return Err(TokenizationError::new_out_of_bounds());
+        return Err(TokenizationErr::new_out_of_bounds());
     }
 
     if !is_start_of_string(inp.peek()) {
@@ -22,19 +22,16 @@ fn is_start_of_string(c: Option<&(usize, char)>) -> bool {
 
 fn read_until_string_end(
     inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationError> {
+) -> Result<Option<Token>, TokenizationErr> {
     let (from, _) = inp.next().unwrap();
     let mut str = String::new();
 
     loop {
-        // let next = inp.next().expect("unterminated string, aalsdfjasdf");
-        let next = inp.next().ok_or(TokenizationError::new_unterminated_str(
+        let next = inp.next().ok_or(TokenizationErr::new_unterminated_str(
             from,
             from + str.len(),
         ))?;
         let (i, c) = next;
-
-        println!("{} {}", i, c);
 
         match c {
             '"' => return Ok(Some(Token::str(&str, from, i + 1))),
@@ -54,7 +51,7 @@ mod tests {
     fn empty() {
         let inp = &mut "".char_indices().peekable();
         let r = string_literal_consumer(inp).unwrap_err();
-        let e = TokenizationError::new_out_of_bounds();
+        let e = TokenizationErr::new_out_of_bounds();
 
         assert_eq!(r, e);
     }
@@ -73,7 +70,7 @@ mod tests {
     fn unterminated() {
         let inp = "\"Hello, World!";
         let r = string_literal_consumer(&mut inp.char_indices().peekable()).unwrap_err();
-        let e = TokenizationError::new_unterminated_str(0, 13);
+        let e = TokenizationErr::new_unterminated_str(0, 13);
 
         assert_eq!(r, e);
     }
