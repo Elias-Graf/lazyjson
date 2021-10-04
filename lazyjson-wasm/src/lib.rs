@@ -37,7 +37,7 @@ pub fn run(cont: &HtmlElement) -> Result<(), JsValue> {
         let resp = match result {
             Ok(resp) => resp,
             Err(e) => {
-                output.set_inner_text(format!("{}", e).as_str());
+                output.set_inner_text(e.as_str());
                 return;
             }
         };
@@ -73,13 +73,17 @@ fn get_document() -> Document {
         .expect("could not get document handle")
 }
 
-fn parse(
-    inp: &str,
-) -> Result<Option<lazyjson::treebuilder::node::Node>, Box<dyn std::error::Error>> {
-    let toks = lazyjson::tokenizer::tokenize(inp)?;
-    let tree = lazyjson::treebuilder::value_consumer::value_consumer(
+fn parse(inp: &str) -> Result<Option<lazyjson::treebuilder::node::Node>, String> {
+    let toks = match lazyjson::tokenizer::tokenize(inp) {
+        Ok(tks) => tks,
+        Err(e) => return Err(e.msg(inp)),
+    };
+    let tree = match lazyjson::treebuilder::value_consumer::value_consumer(
         &mut toks.iter().enumerate().peekable(),
-    )?;
+    ) {
+        Ok(n) => n,
+        Err(e) => return Err(format!("{}", e)),
+    };
 
     Ok(tree)
 }
