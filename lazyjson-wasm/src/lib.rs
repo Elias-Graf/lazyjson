@@ -82,7 +82,7 @@ fn parse(inp: &str) -> Result<Option<lazyjson::treebuilder::node::Node>, String>
         &mut toks.iter().enumerate().peekable(),
     ) {
         Ok(n) => n,
-        Err(e) => return Err(format!("{}", e)),
+        Err(e) => return Err(e.msg(&toks, inp)),
     };
 
     Ok(tree)
