@@ -108,99 +108,95 @@ impl TreebuilderErr {
     pub fn msg(&self, toks: &[Token], inp: &str) -> String {
         let tok_from = toks.get(self.from).unwrap();
         let tok_to = toks.get(self.to - 1).unwrap();
-        let len = tok_to.to - tok_from.from;
 
-        let mut line_cnt = 0;
-        let mut line_start = 0;
+        let err_len = tok_to.to - tok_from.from;
 
-        for (i, c) in inp[..tok_from.from].char_indices() {
-            if c == '\n' {
-                line_cnt += 1;
-                line_start = i + 1;
+        let (line_cnt, idx_of_line_start, idx_of_line_end) = get_err_pos(inp, tok_from, tok_to);
+        let err_start_on_line = tok_from.from - idx_of_line_start;
+        let pos_info = fmt_pos_info(line_cnt, err_start_on_line);
+        let line_info = fmt_line_info(
+            inp,
+            idx_of_line_start,
+            idx_of_line_end,
+            err_start_on_line,
+            err_len,
+        );
+        let err_specific_msg = self.get_err_specific_msg(toks);
+
+        format!("{}, {}\n\n{}\n", err_specific_msg, pos_info, line_info)
+    }
+
+    fn get_err_specific_msg(&self, toks: &[Token]) -> String {
+        let tok = toks.get(self.from).unwrap();
+
+        match self.typ {
+            TreebuilderErrTyp::UnterminatedArr => "array was not terminated".to_string(),
+            TreebuilderErrTyp::UnterminatedObj => "object was not terminated".to_string(),
+            TreebuilderErrTyp::TrailingSep => {
+                "expected the next value or close (trailing separator not allowed)".to_string()
             }
-        }
-
-        let mut line_end = inp.len();
-
-        for (i, c) in inp[tok_to.to..].char_indices() {
-            if c == '\n' {
-                line_end = tok_to.to + i;
-                break;
-            }
-        }
-
-        let char_cnt = tok_from.from - line_start;
-        let line = &inp[line_start..line_end];
-        let marker = " ".repeat(char_cnt) + &"^".repeat(len);
-
-        if self.typ == TreebuilderErrTyp::UnterminatedArr {
-            return format!(
-                "array was not terminated, line: {}, char: {}\n\n{}\n{}\n",
-                line_cnt + 1,
-                char_cnt + 1,
-                line,
-                marker,
-            );
-        }
-
-        if self.typ == TreebuilderErrTyp::UnterminatedObj {
-            return format!(
-                "object was not terminated, line: {}, char: {}\n\n{}\n{}\n",
-                line_cnt + 1,
-                char_cnt + 1,
-                line,
-                marker,
-            );
-        }
-
-        if self.typ == TreebuilderErrTyp::TrailingSep {
-            return format!(
-                "expected the next value or close (trailing separator not allowed), line: {}, char: {}\n\n{}\n{}\n",
-                line_cnt + 1,
-                char_cnt + 1,
-                line,
-                marker,
-            );
-        }
-
-        if self.typ == TreebuilderErrTyp::UnknownKwd {
-            return format!(
-                "received an unknown keyword `{}`, line: {}, char: {}\n\n{}\n{}\n",
-                tok_from.val,
-                line_cnt + 1,
-                char_cnt + 1,
-                line,
-                marker,
-            );
-        }
-
-        let exp = match self.typ {
-            TreebuilderErrTyp::NotAKey => format!("a `{:?}`", TokenType::StringLiteral),
-            TreebuilderErrTyp::NotASep => "a `,`".to_string(),
+            TreebuilderErrTyp::UnknownKwd => format!("received an unknown keyword `{}`", tok.val,),
+            TreebuilderErrTyp::NotAKey => format!(
+                "expected a `{:?}` but received a `{:?}`",
+                TokenType::StringLiteral,
+                tok.typ,
+            ),
+            TreebuilderErrTyp::NotASep => format!("expected a `,` but received a `{:?}`", tok.typ),
             TreebuilderErrTyp::NotAVal => format!(
-                "one of `[`, `{{`, `{:?}`, `{:?}`, or `{:?}`",
+                "expected one of `[`, `{{`, `{:?}`, `{:?}`, or `{:?}` but received a `{:?}`",
                 TokenType::KeywordLiteral,
                 TokenType::NumberLiteral,
                 TokenType::StringLiteral,
+                tok.typ,
             ),
-            TreebuilderErrTyp::NotAnAssignmentOp => "a `:`".to_string(),
-            _ => unimplemented!(),
-        };
-
-        let msg = format!(
-            "expected {} but received a `{:?}`, line: {}, char: {}\n\n{}\n{}\n",
-            exp,
-            tok_from.typ,
-            line_cnt + 1,
-            char_cnt + 1,
-            line,
-            marker,
-        );
-
-        print!("{}", msg);
-
-        msg
+            TreebuilderErrTyp::NotAnAssignmentOp => {
+                format!("expected a `:` but received a `{:?}`", tok.typ)
+            }
+            TreebuilderErrTyp::OutOfBounds => {
+                ">> INTERNAL ERROR - OUT OF BOUNDS << please submit a bug report with the JSON"
+                    .to_string()
+            }
+        }
     }
+}
+
+fn get_err_pos(inp: &str, tok_from: &Token, tok_to: &Token) -> (usize, usize, usize) {
+    let mut line_cnt: usize = 0;
+    let mut idx_of_line_start: usize = 0;
+    let mut idx_of_line_end: usize = inp.len();
+
+    for (i, c) in inp[..tok_from.from].char_indices() {
+        if c == '\n' {
+            line_cnt += 1;
+            idx_of_line_start = i + 1;
+        }
+    }
+
+    for (i, c) in inp[tok_to.to..].char_indices() {
+        if c == '\n' {
+            idx_of_line_end = tok_to.to + i;
+            break;
+        }
+    }
+
+    (line_cnt, idx_of_line_start, idx_of_line_end)
+}
+
+fn fmt_pos_info(line: usize, char: usize) -> String {
+    format!("line: {}, char: {}", line + 1, char + 1)
+}
+
+fn fmt_line_info(
+    inp: &str,
+    line_start: usize,
+    line_end: usize,
+    err_start: usize,
+    err_len: usize,
+) -> String {
+    let line = &inp[line_start..line_end];
+    let err_marker = " ".repeat(err_start) + &"^".repeat(err_len);
+
+    format!("{}\n{}", line, err_marker)
 }
 
 #[cfg(test)]
