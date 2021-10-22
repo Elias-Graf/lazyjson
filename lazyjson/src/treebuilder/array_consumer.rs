@@ -2,9 +2,14 @@ use std::iter::Peekable;
 
 use crate::tokenizer::{Token, TokenIndices, TokenType};
 
+use super::config::Config;
+use super::DEFAULT_CONFIG;
 use super::{error::TreebuilderErr, node::Node, value_consumer::value_consumer};
 
-pub fn array_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>, TreebuilderErr> {
+pub fn array_consumer(
+    toks: &mut Peekable<TokenIndices>,
+    config: &Config,
+) -> Result<Option<Node>, TreebuilderErr> {
     let &(opn_i, opn_tok) = toks.peek().ok_or(TreebuilderErr::new_out_of_bounds())?;
 
     if !is_arr_opn(opn_tok) {
@@ -26,9 +31,22 @@ pub fn array_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>,
     let mut entries = Vec::new();
 
     loop {
-        check_for_trailing_sep(toks, opn_i, &entries)?;
+        let &(cls_i, cls_t) = toks.peek().ok_or(TreebuilderErr::new_unterminated_arr(
+            opn_i,
+            get_last_tok_idx(&entries),
+        ))?;
 
-        let entry = value_consumer(toks)?.ok_or(TreebuilderErr::new_not_a_val(
+        // If the array is now closed, we have a trailing separator
+        if is_arr_cls(cls_t) {
+            if config.allow_trailing_comma {
+                toks.next();
+                return Ok(Some(Node::new_arr(entries, opn_i, cls_i + 1)));
+            } else {
+                return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
+            }
+        }
+
+        let entry = value_consumer(toks, &DEFAULT_CONFIG)?.ok_or(TreebuilderErr::new_not_a_val(
             get_last_tok_idx(&entries) + 1,
         ))?;
 
@@ -56,23 +74,6 @@ fn is_arr_cls(t: &Token) -> bool {
     t.typ == TokenType::Separator && t.val == "]"
 }
 
-fn check_for_trailing_sep(
-    toks: &mut Peekable<TokenIndices>,
-    opn_i: usize,
-    entries: &Vec<Node>,
-) -> Result<bool, TreebuilderErr> {
-    let &(cls_i, cls_t) = toks.peek().ok_or(TreebuilderErr::new_unterminated_arr(
-        opn_i,
-        get_last_tok_idx(&entries),
-    ))?;
-
-    if is_arr_cls(cls_t) {
-        return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
-    }
-
-    return Ok(false);
-}
-
 fn get_last_tok_idx(entries: &Vec<Node>) -> usize {
     match entries.last() {
         None => 0,
@@ -84,14 +85,15 @@ fn get_last_tok_idx(entries: &Vec<Node>) -> usize {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::tokenizer::Token;
+    use crate::{tokenizer::Token, treebuilder::DEFAULT_CONFIG};
 
     use super::*;
 
     #[test]
     fn empty_input() {
         let toks = [];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_out_of_bounds();
 
         assert_eq!(r, e);
@@ -101,7 +103,7 @@ mod tests {
     fn non_array() {
         let toks = [Token::num("0", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = array_consumer(toks_iter).unwrap();
+        let r = array_consumer(toks_iter, &DEFAULT_CONFIG).unwrap();
         let e = None;
 
         assert_eq!(r, e);
@@ -111,7 +113,8 @@ mod tests {
     #[test]
     fn unterminated() {
         let toks = [Token::sep("[", 0, 0)];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_unterminated_arr(0, 1);
 
         assert_eq!(r, e);
@@ -125,7 +128,8 @@ mod tests {
             Token::num("1", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_not_a_sep(2);
 
         assert_eq!(r, e);
@@ -140,21 +144,46 @@ mod tests {
             Token::op(":", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_not_a_val(3);
 
         assert_eq!(r, e);
     }
 
     #[test]
-    fn trailing_sep() {
+    fn trailing_sep_allowed() {
+        let config = Config {
+            allow_trailing_comma: true,
+        };
         let toks = [
             Token::sep("[", 0, 0),
             Token::num("123", 0, 0),
             Token::sep(",", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let toks_iter = &mut toks.iter().enumerate().peekable();
+
+        let r = array_consumer(toks_iter, &config).unwrap();
+        let e = Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 4));
+
+        assert_eq!(r, e);
+        // The closing bracket should be consumed
+        assert_eq!(toks_iter.next(), None);
+    }
+
+    #[test]
+    fn trailing_sep_not_allowed() {
+        let config = Config {
+            allow_trailing_comma: false,
+        };
+        let toks = [
+            Token::sep("[", 0, 0),
+            Token::num("123", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::sep("]", 0, 0),
+        ];
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
         let e = TreebuilderErr::new_trailing_sep(2);
 
         assert_eq!(r, e);
@@ -163,7 +192,7 @@ mod tests {
     #[test]
     fn empty() {
         let toks = [Token::sep("[", 0, 0), Token::sep("]", 0, 0)];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap();
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
         let e = Some(Node::new_arr(Vec::new(), 0, 2));
 
         assert_eq!(r, e);
@@ -176,7 +205,7 @@ mod tests {
             Token::num("123", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap();
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
         let e = Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 3));
 
         assert_eq!(r, e);
@@ -199,7 +228,7 @@ mod tests {
             Token::str("Hello, World!", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable()).unwrap();
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
         let e = Some(Node::new_arr(
             vec![
                 Node::new_arr(Vec::new(), 1, 3),

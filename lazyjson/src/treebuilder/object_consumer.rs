@@ -1,16 +1,19 @@
 use std::{collections::HashMap, iter::Peekable};
 
 use super::{
-    error::TreebuilderErr, node::Node, string_consumer::string_consumer,
+    config::Config, error::TreebuilderErr, node::Node, string_consumer::string_consumer,
     value_consumer::value_consumer,
 };
 use crate::{
     tokenizer::{TokenIndices, TokenType},
-    treebuilder::node::NodeSpecific,
+    treebuilder::{node::NodeSpecific, DEFAULT_CONFIG},
 };
 
 // TODO: refactor this hot garbage 😉
-pub fn object_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>, TreebuilderErr> {
+pub fn object_consumer(
+    toks: &mut Peekable<TokenIndices>,
+    config: &Config,
+) -> Result<Option<Node>, TreebuilderErr> {
     let &(opn_i, opn_t) = match toks.peek() {
         None => return Err(TreebuilderErr::new_out_of_bounds()),
         Some(p) => p,
@@ -39,12 +42,17 @@ pub fn object_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>
             None => return Err(TreebuilderErr::new_unterminated_obj(opn_i, opn_i + 1)),
             Some(&(i, t)) => {
                 if t.typ == TokenType::Separator && t.val == "}" {
+                    if config.allow_trailing_comma {
+                        toks.next();
+                        return Ok(Some(Node::new_obj(entries, opn_i, i + 1)));
+                    }
+
                     return Err(TreebuilderErr::new_trailing_sep(i - 1));
                 }
             }
         }
 
-        let (key_i, key) = match string_consumer(toks)? {
+        let (key_i, key) = match string_consumer(toks, &DEFAULT_CONFIG)? {
             None => return Err(TreebuilderErr::new_not_a_key(toks.next().unwrap().0)),
             Some(n) => match n.specific {
                 NodeSpecific::String(k) => (n.from, k.val),
@@ -64,7 +72,7 @@ pub fn object_consumer(toks: &mut Peekable<TokenIndices>) -> Result<Option<Node>
             }
         }
 
-        let val = match value_consumer(toks)? {
+        let val = match value_consumer(toks, &DEFAULT_CONFIG)? {
             None => return Err(TreebuilderErr::new_not_a_val(toks.next().unwrap().0)),
             Some(v) => v,
         };
@@ -93,7 +101,8 @@ mod tests {
     #[test]
     fn end_of_input() {
         let toks = [];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_out_of_bounds();
 
         assert_eq!(r, e);
@@ -103,7 +112,7 @@ mod tests {
     fn non_object() {
         let toks = [Token::num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = object_consumer(toks_iter).unwrap();
+        let r = object_consumer(toks_iter, &DEFAULT_CONFIG).unwrap();
         let e = None;
 
         assert_eq!(r, e);
@@ -113,7 +122,8 @@ mod tests {
     #[test]
     fn unterminated() {
         let toks = [Token::sep("{", 0, 0)];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_unterminated_obj(0, 1);
 
         assert_eq!(r, e);
@@ -128,7 +138,8 @@ mod tests {
             Token::str("val", 0, 0),
             Token::sep("}", 0, 0),
         ];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_not_a_key(1);
 
         assert_eq!(r, e);
@@ -143,14 +154,18 @@ mod tests {
             Token::str("val", 0, 0),
             Token::sep("}", 0, 0),
         ];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_not_an_assignment_op(2);
 
         assert_eq!(r, e);
     }
 
     #[test]
-    fn trailing_sep() {
+    fn trailing_sep_allowed() {
+        let config = Config {
+            allow_trailing_comma: true,
+        };
         let toks = [
             Token::sep("{", 0, 0),
             Token::str("key", 0, 0),
@@ -160,11 +175,33 @@ mod tests {
             Token::sep("}", 0, 0),
         ];
 
-        let mut e_entries = HashMap::new();
+        let mut entries = HashMap::new();
+        entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
-        e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
+        let toks_iter = &mut toks.iter().enumerate().peekable();
+        let r = object_consumer(toks_iter, &config).unwrap();
+        let e = Some(Node::new_obj(entries, 0, 6));
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        assert_eq!(r, e);
+        // It should consume the closing brace
+        assert_eq!(toks_iter.next(), None);
+    }
+
+    #[test]
+    fn trailing_sep_not_allowed() {
+        let config = Config {
+            allow_trailing_comma: false,
+        };
+        let toks = [
+            Token::sep("{", 0, 0),
+            Token::str("key", 0, 0),
+            Token::op(":", 0, 0),
+            Token::str("val", 0, 0),
+            Token::sep(",", 0, 0),
+            Token::sep("}", 0, 0),
+        ];
+
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
         let e = TreebuilderErr::new_trailing_sep(4);
 
         assert_eq!(r, e);
@@ -187,7 +224,8 @@ mod tests {
 
         e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap_err();
+        let r =
+            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
         let e = TreebuilderErr::new_not_a_sep(4);
 
         assert_eq!(r, e);
@@ -196,7 +234,7 @@ mod tests {
     #[test]
     fn empty() {
         let toks = [Token::sep("{", 0, 0), Token::sep("}", 0, 0)];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap();
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
         let e = Some(Node::new_obj(HashMap::new(), 0, 2));
 
         assert_eq!(r, e);
@@ -216,7 +254,7 @@ mod tests {
 
         e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap();
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
         let e = Some(Node::new_obj(e_entries, 0, 5));
 
         assert_eq!(r, e);
@@ -261,7 +299,7 @@ mod tests {
             Node::new_str("Hello, World!", 21, 22),
         );
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable()).unwrap();
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
         let e = Some(Node::new_obj(e_entries, 0, 23));
 
         assert_eq!(r, e);

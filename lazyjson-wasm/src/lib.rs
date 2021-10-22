@@ -1,3 +1,4 @@
+use lazyjson::treebuilder::DEFAULT_CONFIG;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::Document;
@@ -80,6 +81,7 @@ fn parse(inp: &str) -> Result<Option<lazyjson::treebuilder::node::Node>, String>
     };
     let tree = match lazyjson::treebuilder::value_consumer::value_consumer(
         &mut toks.iter().enumerate().peekable(),
+        &DEFAULT_CONFIG,
     ) {
         Ok(n) => n,
         Err(e) => return Err(e.msg(&toks, inp)),
