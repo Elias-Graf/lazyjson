@@ -3,7 +3,6 @@ use std::iter::Peekable;
 use crate::tokenizer::{Token, TokenIndices, TokenType};
 
 use super::config::Config;
-use super::DEFAULT_CONFIG;
 use super::{error::TreebuilderErr, node::Node, value_consumer::value_consumer};
 
 pub fn array_consumer(
@@ -46,9 +45,9 @@ pub fn array_consumer(
             }
         }
 
-        let entry = value_consumer(toks, &DEFAULT_CONFIG)?.ok_or(TreebuilderErr::new_not_a_val(
-            get_last_tok_idx(&entries) + 1,
-        ))?;
+        let entry = value_consumer(toks, &Config::DEFAULT)?.ok_or(
+            TreebuilderErr::new_not_a_val(get_last_tok_idx(&entries) + 1),
+        )?;
 
         entries.push(entry);
 
@@ -85,7 +84,7 @@ fn get_last_tok_idx(entries: &Vec<Node>) -> usize {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{tokenizer::Token, treebuilder::DEFAULT_CONFIG};
+    use crate::{tokenizer::Token, treebuilder::Config};
 
     use super::*;
 
@@ -93,7 +92,7 @@ mod tests {
     fn empty_input() {
         let toks = [];
         let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_out_of_bounds();
 
         assert_eq!(r, e);
@@ -103,7 +102,7 @@ mod tests {
     fn non_array() {
         let toks = [Token::num("0", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = array_consumer(toks_iter, &DEFAULT_CONFIG).unwrap();
+        let r = array_consumer(toks_iter, &Config::DEFAULT).unwrap();
         let e = None;
 
         assert_eq!(r, e);
@@ -114,7 +113,7 @@ mod tests {
     fn unterminated() {
         let toks = [Token::sep("[", 0, 0)];
         let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_unterminated_arr(0, 1);
 
         assert_eq!(r, e);
@@ -129,7 +128,7 @@ mod tests {
             Token::sep("]", 0, 0),
         ];
         let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_not_a_sep(2);
 
         assert_eq!(r, e);
@@ -145,7 +144,7 @@ mod tests {
             Token::sep("]", 0, 0),
         ];
         let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_not_a_val(3);
 
         assert_eq!(r, e);
@@ -192,7 +191,7 @@ mod tests {
     #[test]
     fn empty() {
         let toks = [Token::sep("[", 0, 0), Token::sep("]", 0, 0)];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(Vec::new(), 0, 2));
 
         assert_eq!(r, e);
@@ -205,7 +204,7 @@ mod tests {
             Token::num("123", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 3));
 
         assert_eq!(r, e);
@@ -228,7 +227,7 @@ mod tests {
             Token::str("Hello, World!", 0, 0),
             Token::sep("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(
             vec![
                 Node::new_arr(Vec::new(), 1, 3),

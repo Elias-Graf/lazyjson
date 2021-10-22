@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     tokenizer::{TokenIndices, TokenType},
-    treebuilder::{node::NodeSpecific, DEFAULT_CONFIG},
+    treebuilder::node::NodeSpecific,
 };
 
 // TODO: refactor this hot garbage 😉
@@ -52,7 +52,7 @@ pub fn object_consumer(
             }
         }
 
-        let (key_i, key) = match string_consumer(toks, &DEFAULT_CONFIG)? {
+        let (key_i, key) = match string_consumer(toks, &Config::DEFAULT)? {
             None => return Err(TreebuilderErr::new_not_a_key(toks.next().unwrap().0)),
             Some(n) => match n.specific {
                 NodeSpecific::String(k) => (n.from, k.val),
@@ -72,7 +72,7 @@ pub fn object_consumer(
             }
         }
 
-        let val = match value_consumer(toks, &DEFAULT_CONFIG)? {
+        let val = match value_consumer(toks, &Config::DEFAULT)? {
             None => return Err(TreebuilderErr::new_not_a_val(toks.next().unwrap().0)),
             Some(v) => v,
         };
@@ -102,7 +102,7 @@ mod tests {
     fn end_of_input() {
         let toks = [];
         let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_out_of_bounds();
 
         assert_eq!(r, e);
@@ -112,7 +112,7 @@ mod tests {
     fn non_object() {
         let toks = [Token::num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = object_consumer(toks_iter, &DEFAULT_CONFIG).unwrap();
+        let r = object_consumer(toks_iter, &Config::DEFAULT).unwrap();
         let e = None;
 
         assert_eq!(r, e);
@@ -123,7 +123,7 @@ mod tests {
     fn unterminated() {
         let toks = [Token::sep("{", 0, 0)];
         let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_unterminated_obj(0, 1);
 
         assert_eq!(r, e);
@@ -139,7 +139,7 @@ mod tests {
             Token::sep("}", 0, 0),
         ];
         let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_not_a_key(1);
 
         assert_eq!(r, e);
@@ -155,7 +155,7 @@ mod tests {
             Token::sep("}", 0, 0),
         ];
         let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_not_an_assignment_op(2);
 
         assert_eq!(r, e);
@@ -225,7 +225,7 @@ mod tests {
         e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
         let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_not_a_sep(4);
 
         assert_eq!(r, e);
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn empty() {
         let toks = [Token::sep("{", 0, 0), Token::sep("}", 0, 0)];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_obj(HashMap::new(), 0, 2));
 
         assert_eq!(r, e);
@@ -254,7 +254,7 @@ mod tests {
 
         e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_obj(e_entries, 0, 5));
 
         assert_eq!(r, e);
@@ -299,7 +299,7 @@ mod tests {
             Node::new_str("Hello, World!", 21, 22),
         );
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_obj(e_entries, 0, 23));
 
         assert_eq!(r, e);

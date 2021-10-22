@@ -17,10 +17,6 @@ pub mod value_consumer;
 type Consumer =
     dyn Fn(&mut Peekable<TokenIndices>, &Config) -> Result<Option<Node>, TreebuilderErr>;
 
-pub const DEFAULT_CONFIG: Config = Config {
-    allow_trailing_comma: false,
-};
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -65,7 +61,7 @@ mod tests {
             Token::sep("]", 0, 0),
         ];
 
-        let r = value_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap();
+        let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
 
         let mut downtown_entries = HashMap::new();
         downtown_entries.insert("name".to_string(), Node::new_str("Downtown", 4, 5));

@@ -34,15 +34,15 @@ pub fn keyword_consumer(
 
 #[cfg(test)]
 mod tests {
-    use crate::{tokenizer::Token, treebuilder::DEFAULT_CONFIG};
+    use crate::{tokenizer::Token, treebuilder::Config};
 
     use super::*;
 
     #[test]
     fn empty_input() {
         let toks = [];
-        let r =
-            keyword_consumer(&mut toks.iter().enumerate().peekable(), &DEFAULT_CONFIG).unwrap_err();
+        let r = keyword_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT)
+            .unwrap_err();
         let e = TreebuilderErr::new_out_of_bounds();
 
         assert_eq!(r, e);
@@ -52,7 +52,7 @@ mod tests {
     pub fn non_keyword() {
         let toks = [Token::num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &DEFAULT_CONFIG).unwrap();
+        let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
 
         assert_eq!(r, None);
         assert_eq!(toks_iter.next().unwrap(), (0, &Token::num("123", 0, 0)));
@@ -76,7 +76,7 @@ mod tests {
     fn assert_correct_consume(tok: Token, exp: Node) {
         let toks = [tok];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &DEFAULT_CONFIG).unwrap();
+        let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
         let e = Some(exp);
 
         assert_eq!(r, e);
