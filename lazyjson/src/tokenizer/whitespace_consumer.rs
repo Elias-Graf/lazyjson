@@ -5,19 +5,33 @@ use super::{error::TokenizationErr, Token};
 pub fn whitespace_consumer(
     inp: &mut Peekable<CharIndices>,
 ) -> Result<Option<Token>, TokenizationErr> {
-    if inp.peek().is_none() {
-        return Err(TokenizationErr::new_out_of_bounds());
+    let &(from, _) = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
+    let val = read_until_non_whitespace(inp);
+
+    if val.len() == 0 {
+        return Ok(None);
     }
+
+    Ok(Some(Token::new_whitespace(
+        &val,
+        from,
+        from + val.len() + 1,
+    )))
+}
+
+fn read_until_non_whitespace(inp: &mut Peekable<CharIndices>) -> String {
+    let mut val = String::new();
 
     while let Some((_, c)) = inp.peek() {
-        if c.is_whitespace() {
-            inp.next();
-        } else {
+        if !c.is_whitespace() {
             break;
         }
+
+        val.push(*c);
+        inp.next();
     }
 
-    Ok(None)
+    val
 }
 
 #[cfg(test)]
@@ -53,28 +67,34 @@ mod tests {
 
     #[test]
     fn newlines() {
-        consume_three_and_validate_next(&'\n');
+        let mut inp = "\n\n".char_indices().peekable();
+
+        let r = whitespace_consumer(&mut inp).unwrap();
+        let e = Some(Token::new_whitespace("\n\n", 0, 3));
+
+        assert_eq!(r, e);
+        assert_eq!(inp.next(), None);
     }
 
     #[test]
     fn spaces() {
-        consume_three_and_validate_next(&' ');
+        let mut inp = "   ".char_indices().peekable();
+
+        let r = whitespace_consumer(&mut inp).unwrap();
+        let e = Some(Token::new_whitespace("   ", 0, 4));
+
+        assert_eq!(r, e);
+        assert_eq!(inp.next(), None);
     }
 
     #[test]
     fn tabs() {
-        consume_three_and_validate_next(&'\t');
-    }
+        let mut inp = "\t\t\t\t".char_indices().peekable();
 
-    fn consume_three_and_validate_next(c: &char) {
-        let mut val = c.to_string().repeat(3);
+        let r = whitespace_consumer(&mut inp).unwrap();
+        let e = Some(Token::new_whitespace("\t\t\t\t", 0, 5));
 
-        val += "1";
-
-        let inp = &mut val.char_indices().peekable();
-
-        whitespace_consumer(inp).unwrap();
-
-        assert_eq!(inp.next().unwrap(), (3, '1'));
+        assert_eq!(r, e);
+        assert_eq!(inp.next(), None);
     }
 }

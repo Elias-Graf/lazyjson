@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
+    WhitespaceLiteral,
     KeywordLiteral,
     NumberLiteral,
     Operator,
@@ -17,7 +18,17 @@ pub struct Token {
     pub val: String,
 }
 
+// TODO: prefix the all method that create tokens with "new".
 impl Token {
+    pub fn new_whitespace(val: &str, from: usize, to: usize) -> Token {
+        Token {
+            from,
+            to,
+            typ: TokenType::WhitespaceLiteral,
+            val: val.into(),
+        }
+    }
+
     /// Create a token of type [`TokenType::KeywordLiteral`].
     pub fn kwd(val: &str, from: usize, to: usize) -> Token {
         Token {
