@@ -67,7 +67,7 @@ pub fn object_consumer(
             None => return Err(TreebuilderErr::new_unterminated_obj(key_i, key_i + 1)),
             Some((i, assign_op_t)) => {
                 if assign_op_t.typ != TokenType::Operator || assign_op_t.val != ":" {
-                    return Err(TreebuilderErr::new_not_an_assignment_op(i));
+                    return Err(TreebuilderErr::new_not_an_assignment(i));
                 }
             }
         }
@@ -156,7 +156,7 @@ mod tests {
         ];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
-        let e = TreebuilderErr::new_not_an_assignment_op(2);
+        let e = TreebuilderErr::new_not_an_assignment(2);
 
         assert_eq!(r, e);
     }

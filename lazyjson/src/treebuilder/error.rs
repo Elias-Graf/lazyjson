@@ -15,9 +15,7 @@ pub enum TreebuilderErrTyp {
     /// being separators, to be delimiters (would be a new type).
     NotASep,
     NotAVal,
-    /// TODO: consider renaming to just `NotAnAssignment`. As far as I'm
-    /// concerned, assignments are always operations and thus this is redundant.
-    NotAnAssignmentOp,
+    NotAnAssignment,
     OutOfBounds,
     TrailingSep,
     UnknownKwd,
@@ -41,6 +39,7 @@ impl fmt::Display for TreebuilderErr {
 impl Error for TreebuilderErr {}
 
 impl TreebuilderErr {
+    /// Creates a new error of the typ [`TreebuilderErrTyp::NotAKey`].
     pub fn new_not_a_key(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::NotAKey,
@@ -48,6 +47,7 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::NotASep`].
     pub fn new_not_a_sep(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::NotASep,
@@ -55,6 +55,7 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::NotAVal`].
     pub fn new_not_a_val(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::NotAVal,
@@ -62,13 +63,15 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
-    pub fn new_not_an_assignment_op(i: usize) -> TreebuilderErr {
+    /// Creates a new error of the typ [`TreebuilderErrTyp::NotAnAssignment`].
+    pub fn new_not_an_assignment(i: usize) -> TreebuilderErr {
         TreebuilderErr {
-            typ: TreebuilderErrTyp::NotAnAssignmentOp,
+            typ: TreebuilderErrTyp::NotAnAssignment,
             from: i,
             to: i + 1,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::TrailingSep`].
     pub fn new_trailing_sep(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::TrailingSep,
@@ -76,6 +79,7 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::OutOfBounds`].
     pub fn new_out_of_bounds() -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::OutOfBounds,
@@ -83,6 +87,7 @@ impl TreebuilderErr {
             to: usize::MAX,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::UnknownKwd`].
     pub fn new_unknown_kwd(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UnknownKwd,
@@ -90,6 +95,7 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedArr`].
     pub fn new_unterminated_arr(from: usize, to: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UnterminatedArr,
@@ -97,6 +103,7 @@ impl TreebuilderErr {
             to,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedObj`].
     pub fn new_unterminated_obj(from: usize, to: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UnterminatedObj,
@@ -149,7 +156,7 @@ impl TreebuilderErr {
                 TokenType::StringLiteral,
                 tok.typ,
             ),
-            TreebuilderErrTyp::NotAnAssignmentOp => {
+            TreebuilderErrTyp::NotAnAssignment => {
                 format!("expected a `:` but received a `{:?}`", tok.typ)
             }
             TreebuilderErrTyp::OutOfBounds => {
@@ -263,7 +270,7 @@ mod tests {
     fn not_an_assignment_msg() {
         let inp = "{\"city\", false}";
         let tok = Token::new_sep(",", 7, 8);
-        let msg = TreebuilderErr::new_not_an_assignment_op(0).msg(&[tok], inp);
+        let msg = TreebuilderErr::new_not_an_assignment(0).msg(&[tok], inp);
 
         assert_eq!(
             msg,
