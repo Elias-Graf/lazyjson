@@ -21,7 +21,7 @@ pub fn keyword_literal_consumer(
     let from = kwd.first().unwrap().0;
     let to = kwd.last().unwrap().0 + 1;
 
-    Ok(Some(Token::kwd(&val, from, to)))
+    Ok(Some(Token::new_kwd(&val, from, to)))
 }
 
 fn read_until_non_alphabetical(inp: &mut Peekable<CharIndices>) -> Vec<(usize, char)> {
@@ -77,7 +77,7 @@ mod tests {
     fn consume_valid_at_start(inp: &str) {
         let inp_iter = &mut inp.char_indices().peekable();
         let r = keyword_literal_consumer(inp_iter).unwrap();
-        let e = Some(Token::kwd(inp, 0, inp.chars().count()));
+        let e = Some(Token::new_kwd(inp, 0, inp.chars().count()));
         assert_eq!(r, e);
     }
 }

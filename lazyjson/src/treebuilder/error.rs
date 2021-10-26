@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn not_a_key_msg() {
         let inp = "{false}";
-        let tok = Token::kwd("false", 1, 6);
+        let tok = Token::new_kwd("false", 1, 6);
         let msg = TreebuilderErr::new_not_a_key(0).msg(&[tok], inp);
 
         assert_eq!(
@@ -227,7 +227,7 @@ mod tests {
             0
             1
         ]";
-        let tok = Token::num("1", 28, 29);
+        let tok = Token::new_num("1", 28, 29);
         let msg = TreebuilderErr::new_not_a_sep(0).msg(&[tok], inp);
 
         assert_eq!(
@@ -244,7 +244,7 @@ mod tests {
         let inp = "{
             \"city\": ,
         }";
-        let tok = Token::sep(",", 22, 23);
+        let tok = Token::new_sep(",", 22, 23);
         let msg = TreebuilderErr::new_not_a_val(0).msg(&[tok], inp);
 
         assert_eq!(
@@ -262,7 +262,7 @@ mod tests {
     #[test]
     fn not_an_assignment_msg() {
         let inp = "{\"city\", false}";
-        let tok = Token::sep(",", 7, 8);
+        let tok = Token::new_sep(",", 7, 8);
         let msg = TreebuilderErr::new_not_an_assignment_op(0).msg(&[tok], inp);
 
         assert_eq!(
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn trailing_sep_msg() {
         let inp = "{\"city\": false,}";
-        let tok = Token::sep(",", 14, 15);
+        let tok = Token::new_sep(",", 14, 15);
         let msg = TreebuilderErr::new_trailing_sep(0).msg(&[tok], inp);
 
         assert_eq!(
@@ -286,7 +286,7 @@ mod tests {
     #[test]
     fn unknown_kwd_msg() {
         let inp = "nil";
-        let tok = Token::kwd("nil", 0, 3);
+        let tok = Token::new_kwd("nil", 0, 3);
         let msg = TreebuilderErr::new_unknown_kwd(0).msg(&[tok], inp);
 
         assert_eq!(
@@ -298,7 +298,7 @@ mod tests {
     #[test]
     fn unterminated_arr_msg() {
         let inp = "[false";
-        let toks = &[Token::sep("[", 0, 1), Token::kwd("false", 1, 6)];
+        let toks = &[Token::new_sep("[", 0, 1), Token::new_kwd("false", 1, 6)];
         let msg = TreebuilderErr::new_unterminated_arr(0, 2).msg(toks, inp);
 
         assert_eq!(
@@ -311,10 +311,10 @@ mod tests {
     fn unterminated_obj_msg() {
         let inp = "{\"city\": \"London\"";
         let toks = &[
-            Token::sep("{", 0, 1),
-            Token::str("city", 1, 7),
-            Token::op(":", 7, 8),
-            Token::str("London", 9, 17),
+            Token::new_sep("{", 0, 1),
+            Token::new_str("city", 1, 7),
+            Token::new_op(":", 7, 8),
+            Token::new_str("London", 9, 17),
         ];
         let msg = TreebuilderErr::new_unterminated_obj(0, 4).msg(toks, inp);
 

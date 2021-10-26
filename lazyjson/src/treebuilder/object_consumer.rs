@@ -110,18 +110,18 @@ mod tests {
 
     #[test]
     fn non_object() {
-        let toks = [Token::num("123", 0, 0)];
+        let toks = [Token::new_num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
         let r = object_consumer(toks_iter, &Config::DEFAULT).unwrap();
         let e = None;
 
         assert_eq!(r, e);
-        assert_eq!(toks_iter.next().unwrap(), (0, &Token::num("123", 0, 0)));
+        assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("123", 0, 0)));
     }
 
     #[test]
     fn unterminated() {
-        let toks = [Token::sep("{", 0, 0)];
+        let toks = [Token::new_sep("{", 0, 0)];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_unterminated_obj(0, 1);
@@ -132,11 +132,11 @@ mod tests {
     #[test]
     fn invalid_key() {
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::kwd("false", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("val", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_kwd("false", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("val", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
@@ -148,11 +148,11 @@ mod tests {
     #[test]
     fn invalid_assignment() {
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::str("key", 0, 0),
-            Token::str(":", 0, 0),
-            Token::str("val", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_str("key", 0, 0),
+            Token::new_str(":", 0, 0),
+            Token::new_str("val", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
@@ -167,12 +167,12 @@ mod tests {
             allow_trailing_comma: true,
         };
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::str("key", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("val", 0, 0),
-            Token::sep(",", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_str("key", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("val", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
 
         let mut entries = HashMap::new();
@@ -193,12 +193,12 @@ mod tests {
             allow_trailing_comma: false,
         };
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::str("key", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("val", 0, 0),
-            Token::sep(",", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_str("key", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("val", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
 
         let r = object_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
@@ -210,14 +210,14 @@ mod tests {
     #[test]
     fn missing_sep() {
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::str("key1", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("val1", 0, 0),
-            Token::str("key2", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("val2", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_str("key1", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("val1", 0, 0),
+            Token::new_str("key2", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("val2", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
 
         let mut e_entries = HashMap::new();
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let toks = [Token::sep("{", 0, 0), Token::sep("}", 0, 0)];
+        let toks = [Token::new_sep("{", 0, 0), Token::new_sep("}", 0, 0)];
         let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_obj(HashMap::new(), 0, 2));
 
@@ -243,11 +243,11 @@ mod tests {
     #[test]
     fn single_entry() {
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::str("key", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("val", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_str("key", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("val", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
 
         let mut e_entries = HashMap::new();
@@ -263,29 +263,29 @@ mod tests {
     #[test]
     fn multiple_entries() {
         let toks = [
-            Token::sep("{", 0, 0),
-            Token::str("key_arr", 0, 0),
-            Token::op(":", 0, 0),
-            Token::sep("[", 0, 0),
-            Token::sep("]", 0, 0),
-            Token::sep(",", 0, 0),
-            Token::str("key_kwd", 0, 0),
-            Token::op(":", 0, 0),
-            Token::kwd("false", 0, 0),
-            Token::sep(",", 0, 0),
-            Token::str("key_num", 0, 0),
-            Token::op(":", 0, 0),
-            Token::num("123", 0, 0),
-            Token::sep(",", 0, 0),
-            Token::str("key_obj", 0, 0),
-            Token::op(":", 0, 0),
-            Token::sep("{", 0, 0),
-            Token::sep("}", 0, 0),
-            Token::sep(",", 0, 0),
-            Token::str("key_str", 0, 0),
-            Token::op(":", 0, 0),
-            Token::str("Hello, World!", 0, 0),
-            Token::sep("}", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_str("key_arr", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_sep("[", 0, 0),
+            Token::new_sep("]", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_str("key_kwd", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_kwd("false", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_str("key_num", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_num("123", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_str("key_obj", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_sep("{", 0, 0),
+            Token::new_sep("}", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_str("key_str", 0, 0),
+            Token::new_op(":", 0, 0),
+            Token::new_str("Hello, World!", 0, 0),
+            Token::new_sep("}", 0, 0),
         ];
 
         let mut e_entries = HashMap::new();

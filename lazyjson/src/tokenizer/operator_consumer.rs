@@ -11,7 +11,7 @@ pub fn operator_consumer(
             ':' => {
                 let (i, _) = inp.next().unwrap();
 
-                Ok(Some(Token::op(":", i, i + 1)))
+                Ok(Some(Token::new_op(":", i, i + 1)))
             }
             _ => Ok(None),
         },
@@ -53,7 +53,7 @@ mod tests {
     fn colon() {
         let inp = &mut ":".char_indices().peekable();
         let r = operator_consumer(inp).unwrap();
-        let e = Some(Token::op(":", 0, 1));
+        let e = Some(Token::new_op(":", 0, 1));
 
         assert_eq!(r, e);
     }

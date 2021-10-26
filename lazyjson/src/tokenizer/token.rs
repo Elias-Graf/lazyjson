@@ -18,8 +18,8 @@ pub struct Token {
     pub val: String,
 }
 
-// TODO: prefix the all method that create tokens with "new".
 impl Token {
+    /// Create a new token of the type [`TokenType::WhitespaceLiteral`].
     pub fn new_whitespace(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
@@ -28,9 +28,8 @@ impl Token {
             val: val.into(),
         }
     }
-
-    /// Create a token of type [`TokenType::KeywordLiteral`].
-    pub fn kwd(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::KeywordLiteral`].
+    pub fn new_kwd(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
             to,
@@ -38,8 +37,8 @@ impl Token {
             val: val.into(),
         }
     }
-    /// Create a token of type [`TokenType::NumberLiteral`].
-    pub fn num(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::NumberLiteral`].
+    pub fn new_num(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
             to,
@@ -47,8 +46,8 @@ impl Token {
             val: val.into(),
         }
     }
-    /// Create a token of type [`TokenType::Operator`].
-    pub fn op(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::Operator`].
+    pub fn new_op(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
             to,
@@ -56,8 +55,8 @@ impl Token {
             val: val.into(),
         }
     }
-    /// Create a token of type [`TokenType::Separator`].
-    pub fn sep(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::Separator`].
+    pub fn new_sep(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
             to,
@@ -65,8 +64,8 @@ impl Token {
             val: val.into(),
         }
     }
-    /// Create a token of type [`TokenType::StringLiteral`].
-    pub fn str(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::StringLiteral`].
+    pub fn new_str(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
             to,

@@ -34,7 +34,7 @@ fn read_until_string_end(
         let (i, c) = next;
 
         match c {
-            '"' => return Ok(Some(Token::str(&str, from, i + 1))),
+            '"' => return Ok(Some(Token::new_str(&str, from, i + 1))),
             // If we have an escaped character we push it no matter what (even
             // if it's a '"' for example).
             '\\' => str.push(inp.next().unwrap().1),
@@ -80,7 +80,7 @@ mod tests {
         let val = "\"\"";
         let inp = &mut val.char_indices().peekable();
         let r = string_literal_consumer(inp).unwrap();
-        let e = Some(Token::str("", 0, 2));
+        let e = Some(Token::new_str("", 0, 2));
 
         assert_eq!(r, e);
     }
@@ -90,7 +90,7 @@ mod tests {
         let val = "\"Hello, World 👋\"";
         let inp = &mut val.char_indices().peekable();
         let r = string_literal_consumer(inp).unwrap();
-        let e = Some(Token::str("Hello, World 👋", 0, val.len()));
+        let e = Some(Token::new_str("Hello, World 👋", 0, val.len()));
 
         assert_eq!(r, e);
     }
@@ -100,7 +100,7 @@ mod tests {
         let val = "\"Hello, \\\"World\\\" 👋\"";
         let inp = &mut val.char_indices().peekable();
         let r = string_literal_consumer(inp).unwrap();
-        let e = Some(Token::str("Hello, \"World\" 👋", 0, val.len()));
+        let e = Some(Token::new_str("Hello, \"World\" 👋", 0, val.len()));
 
         assert_eq!(r, e);
     }

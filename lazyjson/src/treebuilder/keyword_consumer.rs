@@ -50,27 +50,27 @@ mod tests {
 
     #[test]
     pub fn non_keyword() {
-        let toks = [Token::num("123", 0, 0)];
+        let toks = [Token::new_num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
         let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
 
         assert_eq!(r, None);
-        assert_eq!(toks_iter.next().unwrap(), (0, &Token::num("123", 0, 0)));
+        assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("123", 0, 0)));
     }
 
     #[test]
     pub fn consume_false() {
-        assert_correct_consume(Token::kwd("false", 0, 0), Node::new_bool(false, 0, 1));
+        assert_correct_consume(Token::new_kwd("false", 0, 0), Node::new_bool(false, 0, 1));
     }
 
     #[test]
     pub fn consume_null() {
-        assert_correct_consume(Token::kwd("null", 0, 0), Node::new_null(0, 1));
+        assert_correct_consume(Token::new_kwd("null", 0, 0), Node::new_null(0, 1));
     }
 
     #[test]
     pub fn consume_true() {
-        assert_correct_consume(Token::kwd("true", 0, 0), Node::new_bool(true, 0, 1));
+        assert_correct_consume(Token::new_kwd("true", 0, 0), Node::new_bool(true, 0, 1));
     }
 
     fn assert_correct_consume(tok: Token, exp: Node) {

@@ -81,9 +81,9 @@ mod tests {
     fn keywords() {
         let r = tokenize("false null true").unwrap();
         let e = [
-            Token::kwd("false", 0, 5),
-            Token::kwd("null", 6, 10),
-            Token::kwd("true", 11, 15),
+            Token::new_kwd("false", 0, 5),
+            Token::new_kwd("null", 6, 10),
+            Token::new_kwd("true", 11, 15),
         ];
 
         assert_eq!(r, e);
@@ -92,7 +92,10 @@ mod tests {
     #[test]
     fn numbers() {
         let r = tokenize("123 123.456").unwrap();
-        let e = [Token::num("123", 0, 3), Token::num("123.456", 4, 11)];
+        let e = [
+            Token::new_num("123", 0, 3),
+            Token::new_num("123.456", 4, 11),
+        ];
 
         assert_eq!(r, e);
     }
@@ -100,7 +103,7 @@ mod tests {
     #[test]
     fn operators() {
         let r = tokenize(":").unwrap();
-        let e = [Token::op(":", 0, 1)];
+        let e = [Token::new_op(":", 0, 1)];
 
         assert_eq!(r, e);
     }
@@ -109,11 +112,11 @@ mod tests {
     fn separators() {
         let r = tokenize(", [ ] { }").unwrap();
         let e = [
-            Token::sep(",", 0, 1),
-            Token::sep("[", 2, 3),
-            Token::sep("]", 4, 5),
-            Token::sep("{", 6, 7),
-            Token::sep("}", 8, 9),
+            Token::new_sep(",", 0, 1),
+            Token::new_sep("[", 2, 3),
+            Token::new_sep("]", 4, 5),
+            Token::new_sep("{", 6, 7),
+            Token::new_sep("}", 8, 9),
         ];
 
         assert_eq!(r, e);
@@ -123,9 +126,9 @@ mod tests {
     fn strings() {
         let r = tokenize("\"\" \"hello, world\" \"\\\"cool\\\"\"").unwrap();
         let e = [
-            Token::str("", 0, 2),
-            Token::str("hello, world", 3, 17),
-            Token::str("\"cool\"", 18, 28),
+            Token::new_str("", 0, 2),
+            Token::new_str("hello, world", 3, 17),
+            Token::new_str("\"cool\"", 18, 28),
         ];
 
         assert_eq!(r, e);
@@ -134,7 +137,7 @@ mod tests {
     #[test]
     fn trailing_whitespace() {
         let r = tokenize("1   ").unwrap();
-        let e = [Token::num("1", 0, 1)];
+        let e = [Token::new_num("1", 0, 1)];
 
         assert_eq!(r, e);
     }

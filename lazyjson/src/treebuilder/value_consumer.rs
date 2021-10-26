@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn array() {
-        let toks = [Token::sep("[", 0, 0), Token::sep("]", 0, 0)];
+        let toks = [Token::new_sep("[", 0, 0), Token::new_sep("]", 0, 0)];
         let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(Vec::new(), 0, 2));
 
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn keyword() {
-        let toks = [Token::kwd("false", 0, 0)];
+        let toks = [Token::new_kwd("false", 0, 0)];
         let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_bool(false, 0, 1));
 
@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn number() {
-        let toks = [Token::num("123.456", 0, 0)];
+        let toks = [Token::new_num("123.456", 0, 0)];
         let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_num("123.456", 0, 1));
 
@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn object() {
-        let toks = [Token::sep("{", 0, 0), Token::sep("}", 0, 0)];
+        let toks = [Token::new_sep("{", 0, 0), Token::new_sep("}", 0, 0)];
         let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_obj(HashMap::new(), 0, 2));
 
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn string() {
-        let toks = [Token::str("hello world", 0, 0)];
+        let toks = [Token::new_str("hello world", 0, 0)];
         let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_str("hello world", 0, 1));
 

@@ -40,18 +40,21 @@ mod tests {
 
     #[test]
     fn non_string() {
-        let toks = [Token::kwd("false", 0, 0)];
+        let toks = [Token::new_kwd("false", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
         let r = string_consumer(toks_iter, &Config::DEFAULT).unwrap();
         let e = None;
 
         assert_eq!(r, e);
-        assert_eq!(toks_iter.next().unwrap(), (0, &Token::kwd("false", 0, 0)));
+        assert_eq!(
+            toks_iter.next().unwrap(),
+            (0, &Token::new_kwd("false", 0, 0))
+        );
     }
 
     #[test]
     fn string() {
-        let toks = [Token::str("hello world", 0, 0)];
+        let toks = [Token::new_str("hello world", 0, 0)];
         let r = string_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_str("hello world", 0, 1));
 

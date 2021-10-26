@@ -11,7 +11,7 @@ pub fn separator_consumer(
             ',' | '[' | ']' | '{' | '}' => {
                 let (i, c) = inp.next().unwrap();
 
-                Ok(Some(Token::sep(c.to_string().as_str(), i, i + 1)))
+                Ok(Some(Token::new_sep(c.to_string().as_str(), i, i + 1)))
             }
             _ => Ok(None),
         },
@@ -61,7 +61,7 @@ mod tests {
     fn consume_valid_at_start(val: &str) {
         let inp = &mut val.char_indices().peekable();
         let r = separator_consumer(inp).unwrap();
-        let e = Some(Token::sep(val, 0, 1));
+        let e = Some(Token::new_sep(val, 0, 1));
 
         assert_eq!(r, e);
     }

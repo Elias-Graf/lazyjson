@@ -21,7 +21,7 @@ pub fn number_literal_consumer(
     let from = num.first().unwrap().0;
     let to = num.last().unwrap().0 + 1;
 
-    Ok(Some(Token::num(&val, from, to)))
+    Ok(Some(Token::new_num(&val, from, to)))
 }
 
 fn read_until_non_numeric(inp: &mut Peekable<CharIndices>) -> Vec<(usize, char)> {
@@ -74,7 +74,7 @@ pub mod tests {
         let val = "123456789";
         let inp = &mut val.char_indices().peekable();
         let r = number_literal_consumer(inp).unwrap();
-        let e = Some(Token::num(val, 0, val.chars().count()));
+        let e = Some(Token::new_num(val, 0, val.chars().count()));
 
         assert_eq!(r, e);
     }
@@ -84,7 +84,7 @@ pub mod tests {
         let val = "123.456";
         let inp = &mut val.char_indices().peekable();
         let r = number_literal_consumer(inp).unwrap();
-        let e = Some(Token::num(val, 0, val.len()));
+        let e = Some(Token::new_num(val, 0, val.len()));
 
         assert_eq!(r, e);
     }
