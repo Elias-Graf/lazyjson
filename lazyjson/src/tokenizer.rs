@@ -47,8 +47,13 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
         for consumer in consumers {
             let tok = consumer(&mut inp_char_indices)?;
 
-            if tok.is_some() {
-                toks.push(tok.unwrap());
+            if let Some(tok) = tok {
+                // Whitespace tokens are currently not used anywhere and would
+                // require adjustments to the rest of the code.
+                // Thus they are simply omitted.
+                if tok.typ != TokenType::WhitespaceLiteral {
+                    toks.push(tok);
+                }
 
                 continue 'o;
             }
@@ -122,6 +127,14 @@ mod tests {
             Token::str("hello, world", 3, 17),
             Token::str("\"cool\"", 18, 28),
         ];
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn trailing_whitespace() {
+        let r = tokenize("1   ").unwrap();
+        let e = [Token::num("1", 0, 1)];
 
         assert_eq!(r, e);
     }
