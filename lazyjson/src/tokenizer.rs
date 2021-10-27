@@ -1,4 +1,5 @@
 mod consumer_response;
+mod delimiter_consumer;
 mod error;
 mod keyword_literal_consumer;
 mod number_literal_consumer;
@@ -14,6 +15,7 @@ use std::str::CharIndices;
 
 pub use token::{Token, TokenType};
 
+use self::delimiter_consumer::delimiter_consumer;
 use self::error::TokenizationErr;
 use self::keyword_literal_consumer::keyword_literal_consumer;
 use self::number_literal_consumer::number_literal_consumer;
@@ -33,6 +35,7 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
 
     let consumers: &[&Consumer] = &[
         &whitespace_consumer,
+        &delimiter_consumer,
         &keyword_literal_consumer,
         &number_literal_consumer,
         &operator_consumer,
@@ -110,13 +113,20 @@ mod tests {
 
     #[test]
     fn separators() {
-        let r = tokenize(", [ ] { }").unwrap();
+        let r = tokenize(",").unwrap();
+        let e = [Token::new_sep(",", 0, 1)];
+
+        assert_eq!(r, e);
+    }
+
+    #[test]
+    fn delimiters() {
+        let r = tokenize("[ ] { }").unwrap();
         let e = [
-            Token::new_sep(",", 0, 1),
-            Token::new_sep("[", 2, 3),
-            Token::new_sep("]", 4, 5),
-            Token::new_sep("{", 6, 7),
-            Token::new_sep("}", 8, 9),
+            Token::new_delimiter("[", 0, 1),
+            Token::new_delimiter("]", 2, 3),
+            Token::new_delimiter("{", 4, 5),
+            Token::new_delimiter("}", 6, 7),
         ];
 
         assert_eq!(r, e);

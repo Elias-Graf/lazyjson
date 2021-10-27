@@ -66,11 +66,11 @@ pub fn array_consumer(
 }
 
 fn is_arr_opn(opn_tok: &Token) -> bool {
-    opn_tok.typ == TokenType::Separator && opn_tok.val == "["
+    opn_tok.typ == TokenType::Delimiter && opn_tok.val == "["
 }
 
 fn is_arr_cls(t: &Token) -> bool {
-    t.typ == TokenType::Separator && t.val == "]"
+    t.typ == TokenType::Delimiter && t.val == "]"
 }
 
 fn get_last_tok_idx(entries: &Vec<Node>) -> usize {
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn unterminated() {
-        let toks = [Token::new_sep("[", 0, 0)];
+        let toks = [Token::new_delimiter("[", 0, 0)];
         let r =
             array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_unterminated_arr(0, 1);
@@ -122,10 +122,10 @@ mod tests {
     #[test]
     fn missing_sep() {
         let toks = [
-            Token::new_sep("[", 0, 0),
+            Token::new_delimiter("[", 0, 0),
             Token::new_num("1", 0, 0),
             Token::new_num("1", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
         let r =
             array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
@@ -137,11 +137,11 @@ mod tests {
     #[test]
     fn invalid_val() {
         let toks = [
-            Token::new_sep("[", 0, 0),
+            Token::new_delimiter("[", 0, 0),
             Token::new_num("1", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_op(":", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
         let r =
             array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
@@ -156,10 +156,10 @@ mod tests {
             allow_trailing_comma: true,
         };
         let toks = [
-            Token::new_sep("[", 0, 0),
+            Token::new_delimiter("[", 0, 0),
             Token::new_num("123", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
         let toks_iter = &mut toks.iter().enumerate().peekable();
 
@@ -177,10 +177,10 @@ mod tests {
             allow_trailing_comma: false,
         };
         let toks = [
-            Token::new_sep("[", 0, 0),
+            Token::new_delimiter("[", 0, 0),
             Token::new_num("123", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
         let r = array_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
         let e = TreebuilderErr::new_trailing_sep(2);
@@ -190,7 +190,10 @@ mod tests {
 
     #[test]
     fn empty() {
-        let toks = [Token::new_sep("[", 0, 0), Token::new_sep("]", 0, 0)];
+        let toks = [
+            Token::new_delimiter("[", 0, 0),
+            Token::new_delimiter("]", 0, 0),
+        ];
         let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(Vec::new(), 0, 2));
 
@@ -200,9 +203,9 @@ mod tests {
     #[test]
     fn single_entry() {
         let toks = [
-            Token::new_sep("[", 0, 0),
+            Token::new_delimiter("[", 0, 0),
             Token::new_num("123", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
         let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 3));
@@ -213,19 +216,19 @@ mod tests {
     #[test]
     fn multiple_entries() {
         let toks = [
-            Token::new_sep("[", 0, 0),
-            Token::new_sep("[", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("[", 0, 0),
+            Token::new_delimiter("[", 0, 0),
+            Token::new_delimiter("]", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_kwd("false", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_num("123", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_sep("{", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("{", 0, 0),
+            Token::new_delimiter("}", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("Hello, World!", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
         let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_arr(

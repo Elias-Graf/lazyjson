@@ -7,12 +7,6 @@ use std::{
 #[derive(PartialEq, Eq, Debug)]
 pub enum TreebuilderErrTyp {
     NotAKey,
-    /// TODO: separators are not just `,`, but also `{`, `}`, `[`, or`]`. This error was
-    /// explicitly designed for `,`, so keep that in mind when
-    /// using it.
-    /// The best solution to the problem would probably be to go back to the
-    /// tokenizer, and move container characters (such as `{` or `[`) from
-    /// being separators, to be delimiters (would be a new type).
     NotASep,
     NotAVal,
     NotAnAssignment,

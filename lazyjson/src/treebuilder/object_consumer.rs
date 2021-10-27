@@ -5,7 +5,7 @@ use super::{
     value_consumer::value_consumer,
 };
 use crate::{
-    tokenizer::{TokenIndices, TokenType},
+    tokenizer::{Token, TokenIndices, TokenType},
     treebuilder::node::NodeSpecific,
 };
 
@@ -19,7 +19,7 @@ pub fn object_consumer(
         Some(p) => p,
     };
 
-    if opn_t.typ != TokenType::Separator || opn_t.val != "{" {
+    if !is_obj_opn(opn_t) {
         return Ok(None);
     }
 
@@ -30,7 +30,7 @@ pub fn object_consumer(
     match toks.peek() {
         None => return Err(TreebuilderErr::new_unterminated_obj(opn_i, opn_i + 1)),
         Some(&(cls_i, cls_t)) => {
-            if cls_t.typ == TokenType::Separator && cls_t.val == "}" {
+            if is_obj_cls(cls_t) {
                 toks.next();
                 return Ok(Some(Node::new_obj(entries, opn_i, cls_i + 1)));
             }
@@ -41,7 +41,7 @@ pub fn object_consumer(
         match toks.peek() {
             None => return Err(TreebuilderErr::new_unterminated_obj(opn_i, opn_i + 1)),
             Some(&(i, t)) => {
-                if t.typ == TokenType::Separator && t.val == "}" {
+                if is_obj_cls(t) {
                     if config.allow_trailing_comma {
                         toks.next();
                         return Ok(Some(Node::new_obj(entries, opn_i, i + 1)));
@@ -84,12 +84,20 @@ pub fn object_consumer(
             Some(n) => n,
         };
 
-        if sep_or_cls_t.typ == TokenType::Separator && sep_or_cls_t.val == "}" {
+        if is_obj_cls(sep_or_cls_t) {
             return Ok(Some(Node::new_obj(entries, opn_i, sep_or_cls_i + 1)));
         } else if sep_or_cls_t.typ != TokenType::Separator || sep_or_cls_t.val != "," {
             return Err(TreebuilderErr::new_not_a_sep(sep_or_cls_i));
         }
     }
+}
+
+fn is_obj_opn(t: &Token) -> bool {
+    t.typ == TokenType::Delimiter && t.val == "{"
+}
+
+fn is_obj_cls(t: &Token) -> bool {
+    t.typ == TokenType::Delimiter && t.val == "}"
 }
 
 #[cfg(test)]
@@ -121,7 +129,7 @@ mod tests {
 
     #[test]
     fn unterminated() {
-        let toks = [Token::new_sep("{", 0, 0)];
+        let toks = [Token::new_delimiter("{", 0, 0)];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
         let e = TreebuilderErr::new_unterminated_obj(0, 1);
@@ -132,11 +140,11 @@ mod tests {
     #[test]
     fn invalid_key() {
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_kwd("false", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("val", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
@@ -148,11 +156,11 @@ mod tests {
     #[test]
     fn invalid_assignment() {
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
             Token::new_str(":", 0, 0),
             Token::new_str("val", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
         let r =
             object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
@@ -167,12 +175,12 @@ mod tests {
             allow_trailing_comma: true,
         };
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("val", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
 
         let mut entries = HashMap::new();
@@ -193,12 +201,12 @@ mod tests {
             allow_trailing_comma: false,
         };
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("val", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
 
         let r = object_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
@@ -210,14 +218,14 @@ mod tests {
     #[test]
     fn missing_sep() {
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("key1", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("val1", 0, 0),
             Token::new_str("key2", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("val2", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
 
         let mut e_entries = HashMap::new();
@@ -233,7 +241,10 @@ mod tests {
 
     #[test]
     fn empty() {
-        let toks = [Token::new_sep("{", 0, 0), Token::new_sep("}", 0, 0)];
+        let toks = [
+            Token::new_delimiter("{", 0, 0),
+            Token::new_delimiter("}", 0, 0),
+        ];
         let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
         let e = Some(Node::new_obj(HashMap::new(), 0, 2));
 
@@ -243,11 +254,11 @@ mod tests {
     #[test]
     fn single_entry() {
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("val", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
 
         let mut e_entries = HashMap::new();
@@ -263,11 +274,11 @@ mod tests {
     #[test]
     fn multiple_entries() {
         let toks = [
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("key_arr", 0, 0),
             Token::new_op(":", 0, 0),
-            Token::new_sep("[", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("[", 0, 0),
+            Token::new_delimiter("]", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("key_kwd", 0, 0),
             Token::new_op(":", 0, 0),
@@ -279,13 +290,13 @@ mod tests {
             Token::new_sep(",", 0, 0),
             Token::new_str("key_obj", 0, 0),
             Token::new_op(":", 0, 0),
-            Token::new_sep("{", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("{", 0, 0),
+            Token::new_delimiter("}", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("key_str", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("Hello, World!", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
         ];
 
         let mut e_entries = HashMap::new();

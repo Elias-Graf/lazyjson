@@ -28,8 +28,8 @@ mod tests {
     #[test]
     fn array_of_cities() {
         let toks = [
-            Token::new_sep("[", 0, 0),
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("[", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("name", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("Downtown", 0, 0),
@@ -41,9 +41,9 @@ mod tests {
             Token::new_str("searchable", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_kwd("true", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_sep("{", 0, 0),
+            Token::new_delimiter("{", 0, 0),
             Token::new_str("name", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_str("Uptown", 0, 0),
@@ -55,10 +55,10 @@ mod tests {
             Token::new_str("searchable", 0, 0),
             Token::new_op(":", 0, 0),
             Token::new_kwd("false", 0, 0),
-            Token::new_sep("}", 0, 0),
+            Token::new_delimiter("}", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_kwd("null", 0, 0),
-            Token::new_sep("]", 0, 0),
+            Token::new_delimiter("]", 0, 0),
         ];
 
         let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();

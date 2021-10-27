@@ -1,31 +1,34 @@
 use std::fmt;
 
+// TODO: consider removing literal from the types, as it should be clear that
+// they are literals.
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
-    WhitespaceLiteral,
+    Delimiter,
     KeywordLiteral,
     NumberLiteral,
     Operator,
     Separator,
     StringLiteral,
+    WhitespaceLiteral,
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct Token {
-    pub to: usize,
     pub from: usize,
+    pub to: usize,
     pub typ: TokenType,
     pub val: String,
 }
 
 impl Token {
-    /// Create a new token of the type [`TokenType::WhitespaceLiteral`].
-    pub fn new_whitespace(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::Delimiter`].
+    pub fn new_delimiter(val: &str, from: usize, to: usize) -> Token {
         Token {
             from,
             to,
-            typ: TokenType::WhitespaceLiteral,
-            val: val.into(),
+            typ: TokenType::Delimiter,
+            val: val.to_string(),
         }
     }
     /// Create a new token of the type [`TokenType::KeywordLiteral`].
@@ -70,6 +73,15 @@ impl Token {
             from,
             to,
             typ: TokenType::StringLiteral,
+            val: val.into(),
+        }
+    }
+    /// Create a new token of the type [`TokenType::WhitespaceLiteral`].
+    pub fn new_whitespace(val: &str, from: usize, to: usize) -> Token {
+        Token {
+            from,
+            to,
+            typ: TokenType::WhitespaceLiteral,
             val: val.into(),
         }
     }
