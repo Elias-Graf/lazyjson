@@ -4,7 +4,7 @@ use std::{
     fmt::{self, Debug},
 };
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TreebuilderErrTyp {
     NotAKey,
     NotASep,
@@ -107,110 +107,161 @@ impl TreebuilderErr {
     }
 
     pub fn msg(&self, toks: &[Token], inp: &str) -> String {
-        let tok_from = toks.get(self.from).unwrap();
-        let tok_to = toks.get(self.to - 1).unwrap();
+        let toks_of_err = &toks[self.from..self.to];
+        let first_err_tok = toks_of_err.first().unwrap();
+        let err_from = first_err_tok.from;
+        let err_to = toks_of_err.last().unwrap().to;
 
-        let err_len = tok_to.to - tok_from.from;
+        let verbal_hint = get_verbal_hint(self.typ, first_err_tok);
+        let FilePosition { line, char } = get_err_pos_in_file(inp, err_from);
+        let visual_hint = get_visual_hint(inp, err_from, err_to);
 
-        let (line_cnt, idx_of_line_start, idx_of_line_end) = get_err_pos(inp, tok_from, tok_to);
-        let err_start_on_line = tok_from.from - idx_of_line_start;
-        let pos_info = fmt_pos_info(line_cnt, err_start_on_line);
-        let line_info = fmt_line_info(
-            inp,
-            idx_of_line_start,
-            idx_of_line_end,
-            err_start_on_line,
-            err_len,
-        );
-        let err_specific_msg = self.get_err_specific_msg(toks);
-
-        format!("{}, {}\n\n{}\n", err_specific_msg, pos_info, line_info)
+        format!(
+            "{}, line: {}, char: {}\n\n{}\n",
+            verbal_hint, line, char, visual_hint
+        )
     }
+}
 
-    fn get_err_specific_msg(&self, toks: &[Token]) -> String {
-        let tok = toks.get(self.from).unwrap();
-
-        match self.typ {
-            TreebuilderErrTyp::UnterminatedArr => "array was not terminated".to_string(),
-            TreebuilderErrTyp::UnterminatedObj => "object was not terminated".to_string(),
-            TreebuilderErrTyp::TrailingSep => {
-                "expected the next value or close (trailing separator not allowed)".to_string()
-            }
-            TreebuilderErrTyp::UnknownKwd => format!("received an unknown keyword `{}`", tok.val,),
-            TreebuilderErrTyp::NotAKey => format!(
-                "expected a `{:?}` but received a `{:?}`",
-                TokenType::StringLiteral,
-                tok.typ,
-            ),
-            TreebuilderErrTyp::NotASep => format!("expected a `,` but received a `{:?}`", tok.typ),
-            TreebuilderErrTyp::NotAVal => format!(
-                "expected one of `[`, `{{`, `{:?}`, `{:?}`, or `{:?}` but received a `{:?}`",
-                TokenType::KeywordLiteral,
-                TokenType::NumberLiteral,
-                TokenType::StringLiteral,
-                tok.typ,
-            ),
-            TreebuilderErrTyp::NotAnAssignment => {
-                format!("expected a `:` but received a `{:?}`", tok.typ)
-            }
-            TreebuilderErrTyp::OutOfBounds => {
-                ">> INTERNAL ERROR - OUT OF BOUNDS << please submit a bug report with the JSON"
-                    .to_string()
-            }
+fn get_verbal_hint(typ: TreebuilderErrTyp, err_tok: &Token) -> String {
+    match typ {
+        TreebuilderErrTyp::UnterminatedArr => "array was not terminated".to_string(),
+        TreebuilderErrTyp::UnterminatedObj => "object was not terminated".to_string(),
+        TreebuilderErrTyp::TrailingSep => {
+            "expected the next value or close (trailing separator not allowed)".to_string()
+        }
+        TreebuilderErrTyp::UnknownKwd => format!("received an unknown keyword `{}`", err_tok.val),
+        TreebuilderErrTyp::NotAKey => format!(
+            "expected a `{:?}` but received a `{:?}`",
+            TokenType::StringLiteral,
+            err_tok.typ,
+        ),
+        TreebuilderErrTyp::NotASep => format!("expected a `,` but received a `{:?}`", err_tok.typ),
+        TreebuilderErrTyp::NotAVal => format!(
+            "expected one of `[`, `{{`, `{:?}`, `{:?}`, or `{:?}` but received a `{:?}`",
+            TokenType::KeywordLiteral,
+            TokenType::NumberLiteral,
+            TokenType::StringLiteral,
+            err_tok.typ,
+        ),
+        TreebuilderErrTyp::NotAnAssignment => {
+            format!("expected a `:` but received a `{:?}`", err_tok.typ)
+        }
+        TreebuilderErrTyp::OutOfBounds => {
+            ">> INTERNAL ERROR - OUT OF BOUNDS << please submit a bug report with the JSON"
+                .to_string()
         }
     }
 }
 
-fn get_err_pos(inp: &str, tok_from: &Token, tok_to: &Token) -> (usize, usize, usize) {
-    let mut line_cnt: usize = 0;
-    let mut idx_of_line_start: usize = 0;
-    let mut idx_of_line_end: usize = inp.len();
+#[derive(Debug)]
+struct FilePosition {
+    line: usize,
+    char: usize,
+}
 
-    for (i, c) in inp[..tok_from.from].char_indices() {
+fn get_err_pos_in_file(inp: &str, err_from: usize) -> FilePosition {
+    let mut line_cnt = 1;
+    let mut line_start = 0;
+    for (i, c) in inp[..err_from].char_indices() {
         if c == '\n' {
             line_cnt += 1;
-            idx_of_line_start = i + 1;
+            line_start = i + 1;
         }
     }
 
-    for (i, c) in inp[tok_to.to..].char_indices() {
+    let char_cnt = err_from - line_start + 1;
+
+    FilePosition {
+        line: line_cnt,
+        char: char_cnt,
+    }
+}
+
+fn get_visual_hint(inp: &str, err_from: usize, err_to: usize) -> String {
+    let err_len = err_to - err_from;
+    let err = &inp[err_from..err_to];
+
+    match err.contains('\n') {
+        true => get_multi_line_visual_hint(err),
+        false => get_single_line_visual_hint(inp, err_from, err_to, err_len),
+    }
+}
+
+fn get_multi_line_visual_hint(err: &str) -> String {
+    err.split('\n')
+        .enumerate()
+        .map(|(i, line)| {
+            let marker = "^".repeat(line.len());
+            let mut line_with_marker = String::new();
+
+            if i > 0 {
+                line_with_marker.push('\n');
+            }
+
+            line_with_marker.push_str(line);
+            line_with_marker.push('\n');
+            line_with_marker.push_str(&marker);
+
+            line_with_marker
+        })
+        .collect::<String>()
+}
+
+fn get_single_line_visual_hint(
+    inp: &str,
+    err_from: usize,
+    err_to: usize,
+    err_len: usize,
+) -> String {
+    let (err_line_from, err_line_to) = get_err_line_bounds(inp, err_from, err_to);
+
+    let offset_to_err = err_from - err_line_from;
+
+    let line = &inp[err_line_from..err_line_to];
+    let padding = " ".repeat(offset_to_err);
+    let marker = "^".repeat(err_len);
+
+    format!("{}\n{}{}", line, padding, marker)
+}
+
+fn get_err_line_bounds(inp: &str, err_from: usize, err_to: usize) -> (usize, usize) {
+    let chars = inp.char_indices().collect::<Vec<(usize, char)>>();
+
+    let mut up_to = chars[..err_to].to_owned();
+
+    // Revert it so the first newline will be the first one before the error
+    up_to.reverse();
+
+    let mut line_start = 0;
+    for (i, c) in up_to {
         if c == '\n' {
-            idx_of_line_end = tok_to.to + i;
+            line_start = i + 1;
             break;
         }
     }
 
-    (line_cnt, idx_of_line_start, idx_of_line_end)
-}
+    let following = &chars[err_from..];
+    let line_end = following
+        .iter()
+        .find(|(_, c)| c == &'\n')
+        .unwrap_or(&(inp.len(), '\n'))
+        .0;
 
-fn fmt_pos_info(line: usize, char: usize) -> String {
-    format!("line: {}, char: {}", line + 1, char + 1)
-}
-
-fn fmt_line_info(
-    inp: &str,
-    line_start: usize,
-    line_end: usize,
-    err_start: usize,
-    err_len: usize,
-) -> String {
-    let line = &inp[line_start..line_end];
-    let err_marker = " ".repeat(err_start) + &"^".repeat(err_len);
-
-    format!("{}\n{}", line, err_marker)
+    (line_start, line_end)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenizer::TokenType;
+    use crate::tokenizer::{self, TokenType};
 
     use super::*;
 
     #[test]
     fn not_a_key_msg() {
         let inp = "{false}";
-        let tok = Token::new_kwd("false", 1, 6);
-        let msg = TreebuilderErr::new_not_a_key(0).msg(&[tok], inp);
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_not_a_key(1).msg(&toks, inp);
 
         assert_eq!(
             msg,
@@ -228,8 +279,8 @@ mod tests {
             0
             1
         ]";
-        let tok = Token::new_num("1", 28, 29);
-        let msg = TreebuilderErr::new_not_a_sep(0).msg(&[tok], inp);
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_not_a_sep(2).msg(&toks, inp);
 
         assert_eq!(
             msg,
@@ -245,8 +296,8 @@ mod tests {
         let inp = "{
             \"city\": ,
         }";
-        let tok = Token::new_sep(",", 22, 23);
-        let msg = TreebuilderErr::new_not_a_val(0).msg(&[tok], inp);
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_not_a_val(3).msg(&toks, inp);
 
         assert_eq!(
             msg,
@@ -263,8 +314,8 @@ mod tests {
     #[test]
     fn not_an_assignment_msg() {
         let inp = "{\"city\", false}";
-        let tok = Token::new_sep(",", 7, 8);
-        let msg = TreebuilderErr::new_not_an_assignment(0).msg(&[tok], inp);
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_not_an_assignment(2).msg(&toks, inp);
 
         assert_eq!(
             msg,
@@ -274,21 +325,21 @@ mod tests {
 
     #[test]
     fn trailing_sep_msg() {
-        let inp = "{\"city\": false,}";
-        let tok = Token::new_sep(",", 14, 15);
-        let msg = TreebuilderErr::new_trailing_sep(0).msg(&[tok], inp);
+        let inp = "{\n\"city\": false,}";
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_trailing_sep(4).msg(&toks, inp);
 
         assert_eq!(
             msg,
-            format!("expected the next value or close (trailing separator not allowed), line: 1, char: 15\n\n{{\"city\": false,}}\n              ^\n")
+            format!("expected the next value or close (trailing separator not allowed), line: 2, char: 14\n\n\"city\": false,}}\n             ^\n")
         );
     }
 
     #[test]
     fn unknown_kwd_msg() {
         let inp = "nil";
-        let tok = Token::new_kwd("nil", 0, 3);
-        let msg = TreebuilderErr::new_unknown_kwd(0).msg(&[tok], inp);
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_unknown_kwd(0).msg(&toks, inp);
 
         assert_eq!(
             msg,
@@ -299,8 +350,8 @@ mod tests {
     #[test]
     fn unterminated_arr_msg() {
         let inp = "[false";
-        let toks = &[Token::new_sep("[", 0, 1), Token::new_kwd("false", 1, 6)];
-        let msg = TreebuilderErr::new_unterminated_arr(0, 2).msg(toks, inp);
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_unterminated_arr(0, 2).msg(&toks, inp);
 
         assert_eq!(
             msg,
@@ -310,18 +361,13 @@ mod tests {
 
     #[test]
     fn unterminated_obj_msg() {
-        let inp = "{\"city\": \"London\"";
-        let toks = &[
-            Token::new_sep("{", 0, 1),
-            Token::new_str("city", 1, 7),
-            Token::new_op(":", 7, 8),
-            Token::new_str("London", 9, 17),
-        ];
-        let msg = TreebuilderErr::new_unterminated_obj(0, 4).msg(toks, inp);
+        let inp = "{\n    \"city\": \"London\"\n";
+        let toks = tokenizer::tokenize(inp).unwrap();
+        let msg = TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp),
 
         assert_eq!(
             msg,
-            "object was not terminated, line: 1, char: 1\n\n{\"city\": \"London\"\n^^^^^^^^^^^^^^^^^\n",
+            "object was not terminated, line: 1, char: 1\n\n{\n^\n    \"city\": \"London\"\n^^^^^^^^^^^^^^^^^^^^\n",
         )
     }
 }
