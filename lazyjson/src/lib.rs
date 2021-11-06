@@ -1,10 +1,10 @@
 use treebuilder::{config::Config, node::Node};
 
+pub mod peak_while;
 pub mod tokenizer;
-
 pub mod treebuilder;
 
-pub mod peak_while;
+mod char_queue;
 
 pub fn parse(inp: &str, config: &Config) -> Result<Option<Node>, String> {
     let toks = match tokenizer::tokenize(inp) {
