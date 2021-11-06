@@ -363,7 +363,7 @@ mod tests {
     fn unterminated_obj_msg() {
         let inp = "{\n    \"city\": \"London\"\n";
         let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp),
+        let msg = TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp);
 
         assert_eq!(
             msg,

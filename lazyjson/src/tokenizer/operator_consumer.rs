@@ -1,21 +1,20 @@
-use std::{iter::Peekable, str::CharIndices};
+use crate::char_queue::CharQueue;
 
 use super::{error::TokenizationErr, Token};
 
-pub fn operator_consumer(
-    inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationErr> {
-    match inp.peek() {
-        None => Err(TokenizationErr::new_out_of_bounds()),
-        Some((_, c)) => match c {
-            ':' => {
-                let (i, _) = inp.next().unwrap();
+pub fn operator_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
+    let c = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
 
-                Ok(Some(Token::new_op(":", i, i + 1)))
-            }
-            _ => Ok(None),
-        },
+    if c != ':' {
+        return Ok(None);
     }
+
+    let from = inp.idx();
+    let to = from + 1;
+
+    inp.advance_by(1);
+
+    Ok(Some(Token::new_op(":", from, to)))
 }
 
 #[cfg(test)]
@@ -23,38 +22,47 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty() {
-        let inp = &mut "".char_indices().peekable();
-        let r = operator_consumer(inp).unwrap_err();
-        let e = TokenizationErr::new_out_of_bounds();
-
-        assert_eq!(r, e);
-    }
-
-    #[test]
     fn non_operator() {
-        let inp = &mut "1".char_indices().peekable();
-        let r = operator_consumer(inp).unwrap();
-        let e = None;
+        let inp = &mut CharQueue::new("1");
+        let t = operator_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, None);
     }
 
     #[test]
     fn checking_does_not_consume() {
-        let inp = &mut "1".char_indices().peekable();
+        let inp = &mut CharQueue::new("1");
 
         operator_consumer(inp).unwrap();
 
-        assert_eq!(inp.next().unwrap(), (0, '1'));
+        assert_eq!(inp.next(), Some('1'));
     }
 
     #[test]
-    fn colon() {
-        let inp = &mut ":".char_indices().peekable();
-        let r = operator_consumer(inp).unwrap();
-        let e = Some(Token::new_op(":", 0, 1));
+    fn at_start() {
+        let inp = &mut CharQueue::new(":");
+        let t = operator_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, Some(Token::new_op(":", 0, 1)));
+    }
+
+    #[test]
+    fn at_offset() {
+        let inp = &mut CharQueue::new(" :");
+
+        inp.advance_by(1);
+
+        let t = operator_consumer(inp).unwrap();
+
+        assert_eq!(t, Some(Token::new_op(":", 1, 2)));
+    }
+
+    #[test]
+    fn is_consumed() {
+        let inp = &mut CharQueue::new(": ");
+
+        operator_consumer(inp).unwrap();
+
+        assert_eq!(inp.next(), Some(' '));
     }
 }

@@ -1,41 +1,31 @@
-use std::{iter::Peekable, str::CharIndices};
-
-use crate::peak_while::PeekWhileExt;
+use crate::char_queue::CharQueue;
 
 use super::{error::TokenizationErr, Token};
 
-pub fn number_literal_consumer(
-    inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationErr> {
-    if inp.peek().is_none() {
-        return Err(TokenizationErr::new_out_of_bounds());
+pub fn number_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
+    let num = match read_until_non_numeric(inp) {
+        Some(num) => num,
+        None => return Ok(None),
+    };
+
+    let from = inp.idx();
+    let to = inp.idx() + num.len();
+
+    inp.advance_by(num.len());
+
+    Ok(Some(Token::new_num(&num, from, to)))
+}
+
+fn read_until_non_numeric(inp: &mut CharQueue) -> Option<String> {
+    let to = inp
+        .find_next_by_closure(|c| !c.is_numeric() && c != '.')
+        .unwrap_or(inp.len());
+    let val = inp.get(inp.idx()..to)?;
+
+    if val.is_empty() {
+        return None;
     }
-
-    let num = read_until_non_numeric(inp);
-
-    if is_not_number(&num) {
-        return Ok(None);
-    }
-
-    let val = convert_to_string(&num);
-    let from = num.first().unwrap().0;
-    let to = num.last().unwrap().0 + 1;
-
-    Ok(Some(Token::new_num(&val, from, to)))
-}
-
-fn read_until_non_numeric(inp: &mut Peekable<CharIndices>) -> Vec<(usize, char)> {
-    inp.peek_while(|(_, c)| c.is_digit(10) || c == &'.')
-        .collect()
-}
-
-fn is_not_number(num: &Vec<(usize, char)>) -> bool {
-    num.is_empty()
-}
-
-fn convert_to_string(num: &Vec<(usize, char)>) -> String {
-    num.iter()
-        .fold(String::new(), |s, (_, c)| s + &c.to_string())
+    Some(val.to_string())
 }
 
 #[cfg(test)]
@@ -43,49 +33,44 @@ pub mod tests {
     use super::*;
 
     #[test]
-    fn empty() {
-        let inp = &mut "".char_indices().peekable();
-        let r = number_literal_consumer(inp).unwrap_err();
-        let e = TokenizationErr::new_out_of_bounds();
-
-        assert_eq!(r, e);
-    }
-
-    #[test]
     fn non_number() {
-        let inp = &mut "a".char_indices().peekable();
-        let r = number_literal_consumer(inp).unwrap();
-        let e = None;
+        let inp = &mut CharQueue::new("a");
+        let t = number_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, None);
     }
 
     #[test]
     fn checking_does_not_consume() {
-        let inp = &mut "a".char_indices().peekable();
+        let inp = &mut CharQueue::new("a");
 
         number_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next().unwrap(), (0, 'a'));
+        assert_eq!(inp.next(), Some('a'));
     }
 
     #[test]
-    fn valid_at_start() {
-        let val = "123456789";
-        let inp = &mut val.char_indices().peekable();
-        let r = number_literal_consumer(inp).unwrap();
-        let e = Some(Token::new_num(val, 0, val.chars().count()));
+    fn at_start() {
+        let inp = &mut CharQueue::new("123456789");
+        let t = number_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, Some(Token::new_num("123456789", 0, 9)));
     }
 
     #[test]
-    fn valid_at_start_with_decimal() {
-        let val = "123.456";
-        let inp = &mut val.char_indices().peekable();
-        let r = number_literal_consumer(inp).unwrap();
-        let e = Some(Token::new_num(val, 0, val.len()));
+    fn at_start_with_decimal() {
+        let inp = &mut CharQueue::new("123.456");
+        let t = number_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, Some(Token::new_num("123.456", 0, 7)));
+    }
+
+    #[test]
+    fn is_consumed() {
+        let inp = &mut CharQueue::new("123 ");
+
+        number_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next(), Some(' '));
     }
 }

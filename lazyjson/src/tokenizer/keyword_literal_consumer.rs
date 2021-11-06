@@ -1,40 +1,31 @@
-use std::{iter::Peekable, str::CharIndices};
-
 use super::{error::TokenizationErr, token::*};
 
-use crate::peak_while::PeekWhileExt;
+use crate::char_queue::CharQueue;
 
-pub fn keyword_literal_consumer(
-    inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationErr> {
-    if inp.peek().is_none() {
-        return Err(TokenizationErr::new_out_of_bounds());
+pub fn keyword_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
+    let kwd = match read_until_non_alphabetical(inp) {
+        Some(kwd) => kwd,
+        None => return Ok(None),
+    };
+
+    let from = inp.idx();
+    let to = inp.idx() + kwd.len();
+
+    inp.advance_by(kwd.len());
+
+    Ok(Some(Token::new_kwd(&kwd, from, to)))
+}
+
+fn read_until_non_alphabetical(inp: &mut CharQueue) -> Option<String> {
+    let to = inp
+        .find_next_by_closure(|c| !c.is_alphabetic())
+        .unwrap_or(inp.len());
+    let val = inp.get(inp.idx()..to)?.to_string();
+
+    if val.is_empty() {
+        return None;
     }
-
-    let kwd = read_until_non_alphabetical(inp);
-
-    if is_not_keyword(&kwd) {
-        return Ok(None);
-    }
-
-    let val = convert_to_string(&kwd);
-    let from = kwd.first().unwrap().0;
-    let to = kwd.last().unwrap().0 + 1;
-
-    Ok(Some(Token::new_kwd(&val, from, to)))
-}
-
-fn read_until_non_alphabetical(inp: &mut Peekable<CharIndices>) -> Vec<(usize, char)> {
-    inp.peek_while(|(_, c)| c.is_alphabetic()).collect()
-}
-
-fn is_not_keyword(kwd: &Vec<(usize, char)>) -> bool {
-    kwd.is_empty()
-}
-
-fn convert_to_string(kwd: &Vec<(usize, char)>) -> String {
-    kwd.iter()
-        .fold(String::new(), |s, (_, c)| s + &c.to_string())
+    return Some(val);
 }
 
 #[cfg(test)]
@@ -42,30 +33,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty() {
-        let inp = &mut "".char_indices().peekable();
-        let r = keyword_literal_consumer(inp).unwrap_err();
-        let e = TokenizationErr::new_out_of_bounds();
-
-        assert_eq!(r, e);
-    }
-
-    #[test]
     fn non_keyword() {
-        let inp = &mut "1".char_indices().peekable();
-        let r = keyword_literal_consumer(inp).unwrap();
-        let e = None;
+        let inp = &mut CharQueue::new("1");
+        let t = keyword_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, None);
     }
 
     #[test]
     fn checking_does_not_consume() {
-        let inp = &mut "1".char_indices().peekable();
+        let inp = &mut CharQueue::new("1");
 
         keyword_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next().unwrap(), (0, '1'));
+        assert_eq!(inp.next(), Some('1'));
     }
 
     #[test]
@@ -74,8 +55,26 @@ mod tests {
         consume_valid_at_start("true");
     }
 
+    #[test]
+    fn valid_at_offset() {
+        let inp = &mut CharQueue::new("   false");
+        inp.advance_by(3);
+
+        let t = keyword_literal_consumer(inp).unwrap();
+
+        assert_eq!(t, Some(Token::new_kwd("false", 3, 8)));
+    }
+
+    #[test]
+    fn is_consumed() {
+        let inp = &mut CharQueue::new("false ");
+        keyword_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next(), Some(' '));
+    }
+
     fn consume_valid_at_start(inp: &str) {
-        let inp_iter = &mut inp.char_indices().peekable();
+        let inp_iter = &mut CharQueue::new(inp);
         let r = keyword_literal_consumer(inp_iter).unwrap();
         let e = Some(Token::new_kwd(inp, 0, inp.chars().count()));
         assert_eq!(r, e);

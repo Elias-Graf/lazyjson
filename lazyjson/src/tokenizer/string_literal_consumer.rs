@@ -1,46 +1,46 @@
-use std::{iter::Peekable, str::CharIndices};
+use crate::char_queue::CharQueue;
 
 use super::{error::TokenizationErr, Token};
 
-pub fn string_literal_consumer(
-    inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationErr> {
-    if inp.peek().is_none() {
-        return Err(TokenizationErr::new_out_of_bounds());
-    }
+const OPENING_QUOTE: usize = 1;
+const CLOSING_QUOTE: usize = 1;
 
-    if !is_start_of_string(inp.peek()) {
+pub fn string_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
+    let start = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
+
+    if start != '"' {
         return Ok(None);
     }
 
-    return read_until_string_end(inp);
+    let from = inp.idx();
+    let val = read_until_string_end(inp)?;
+    let len = val.len();
+    let to = OPENING_QUOTE + len + CLOSING_QUOTE;
+
+    Ok(Some(Token::new_str(&val, from, to)))
 }
 
-fn is_start_of_string(c: Option<&(usize, char)>) -> bool {
-    c.unwrap().1 == '"'
-}
-
-fn read_until_string_end(
-    inp: &mut Peekable<CharIndices>,
-) -> Result<Option<Token>, TokenizationErr> {
-    let (from, _) = inp.next().unwrap();
+fn read_until_string_end(inp: &mut CharQueue) -> Result<String, TokenizationErr> {
+    let from = inp.idx();
     let mut str = String::new();
 
+    inp.advance_by(OPENING_QUOTE);
+
     loop {
-        let next = inp.next().ok_or(TokenizationErr::new_unterminated_str(
-            from,
-            from + str.len() + 1,
-        ))?;
-        let (i, c) = next;
+        let c = inp
+            .next()
+            .ok_or(TokenizationErr::new_unterminated_str(from, inp.idx()))?;
 
         match c {
-            '"' => return Ok(Some(Token::new_str(&str, from, i + 1))),
-            // If we have an escaped character we push it no matter what (even
-            // if it's a '"' for example).
-            '\\' => str.push(inp.next().unwrap().1),
+            '"' => break,
+            // If we have an escaped character we push it no matter what (for example
+            // an escaped quote).
+            '\\' => str.push(inp.next().unwrap()),
             _ => str.push(c),
         }
     }
+
+    Ok(str)
 }
 
 #[cfg(test)]
@@ -48,60 +48,57 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty() {
-        let inp = &mut "".char_indices().peekable();
-        let r = string_literal_consumer(inp).unwrap_err();
-        let e = TokenizationErr::new_out_of_bounds();
-
-        assert_eq!(r, e);
-    }
-
-    #[test]
     fn non_string() {
-        let inp = &mut "1".char_indices().peekable();
-        let r = string_literal_consumer(inp).unwrap();
-        let e = None;
+        let inp = &mut CharQueue::new("1");
 
-        assert_eq!(r, e);
-        assert_eq!(inp.next().unwrap(), (0, '1'));
+        string_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next(), Some('1'));
     }
 
     #[test]
     fn unterminated() {
-        let inp = "\"Hello, World!";
-        let r = string_literal_consumer(&mut inp.char_indices().peekable()).unwrap_err();
-        let e = TokenizationErr::new_unterminated_str(0, 14);
+        let inp = &mut CharQueue::new("\"Hello, World!");
+        let t = string_literal_consumer(inp).unwrap_err();
 
-        assert_eq!(r, e);
+        assert_eq!(t, TokenizationErr::new_unterminated_str(0, 14));
     }
 
     #[test]
     fn empty_string() {
-        let val = "\"\"";
-        let inp = &mut val.char_indices().peekable();
-        let r = string_literal_consumer(inp).unwrap();
-        let e = Some(Token::new_str("", 0, 2));
+        let inp = &mut CharQueue::new("\"\"");
+        let t = string_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, Some(Token::new_str("", 0, 2)));
     }
 
     #[test]
     fn normal_string() {
-        let val = "\"Hello, World 👋\"";
-        let inp = &mut val.char_indices().peekable();
-        let r = string_literal_consumer(inp).unwrap();
-        let e = Some(Token::new_str("Hello, World 👋", 0, val.len()));
+        let inp = &mut CharQueue::new("\"Hello, World 👋\"");
+        let t = string_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        assert_eq!(t, Some(Token::new_str("Hello, World 👋", 0, inp.len())));
     }
 
     #[test]
     fn containing_quotes() {
-        let val = "\"Hello, \\\"World\\\" 👋\"";
-        let inp = &mut val.char_indices().peekable();
-        let r = string_literal_consumer(inp).unwrap();
-        let e = Some(Token::new_str("Hello, \"World\" 👋", 0, val.len()));
+        let inp = &mut CharQueue::new("\"Hello, \\\"World\\\" 👋\"");
+        let t = string_literal_consumer(inp).unwrap();
 
-        assert_eq!(r, e);
+        let x = Some(Token::new_str("Hello, \"World\" 👋", 0, inp.len()));
+
+        dbg!(&inp, &x, inp.len());
+
+        assert_eq!(t, x);
+    }
+
+    #[test]
+    fn at_offset() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn is_consumed() {
+        unimplemented!()
     }
 }

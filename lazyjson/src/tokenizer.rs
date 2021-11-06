@@ -1,7 +1,7 @@
-mod consumer_response;
 mod delimiter_consumer;
 mod error;
 mod keyword_literal_consumer;
+mod line_comment_consumer;
 mod number_literal_consumer;
 mod operator_consumer;
 mod separator_consumer;
@@ -15,9 +15,12 @@ use std::str::CharIndices;
 
 pub use token::{Token, TokenType};
 
+use crate::char_queue::CharQueue;
+
 use self::delimiter_consumer::delimiter_consumer;
 use self::error::TokenizationErr;
 use self::keyword_literal_consumer::keyword_literal_consumer;
+use self::line_comment_consumer::line_comment_consumer;
 use self::number_literal_consumer::number_literal_consumer;
 use self::operator_consumer::operator_consumer;
 use self::separator_consumer::separator_consumer;
@@ -26,7 +29,7 @@ use self::whitespace_consumer::whitespace_consumer;
 
 pub type TokenIndices<'a> = Enumerate<Iter<'a, Token>>;
 
-type Consumer = dyn Fn(&mut Peekable<CharIndices>) -> Result<Option<Token>, TokenizationErr>;
+type Consumer = dyn Fn(&mut CharQueue) -> Result<Option<Token>, TokenizationErr>;
 
 pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
     if inp.is_empty() {
@@ -34,6 +37,7 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
     }
 
     let consumers: &[&Consumer] = &[
+        &line_comment_consumer,
         &whitespace_consumer,
         &delimiter_consumer,
         &keyword_literal_consumer,
@@ -43,12 +47,12 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
         &string_literal_consumer,
     ];
 
-    let mut inp_char_indices = inp.char_indices().peekable();
+    let mut queue = CharQueue::new(inp);
     let mut toks = Vec::new();
 
-    'o: while inp_char_indices.peek().is_some() {
+    'o: while queue.has_remaining() {
         for consumer in consumers {
-            let tok = consumer(&mut inp_char_indices)?;
+            let tok = consumer(&mut queue)?;
 
             if let Some(tok) = tok {
                 // Whitespace tokens are currently not used anywhere and would
@@ -62,7 +66,7 @@ pub fn tokenize(inp: &str) -> Result<Vec<Token>, TokenizationErr> {
             }
         }
 
-        panic!("{:?} was not consumed", inp_char_indices.next());
+        panic!("{:?} was not consumed", queue.next());
     }
 
     Ok(toks)

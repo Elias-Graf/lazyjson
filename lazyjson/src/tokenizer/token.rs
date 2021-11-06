@@ -6,6 +6,7 @@ use std::fmt;
 pub enum TokenType {
     Delimiter,
     KeywordLiteral,
+    LineComment,
     NumberLiteral,
     Operator,
     Separator,
@@ -37,6 +38,15 @@ impl Token {
             from,
             to,
             typ: TokenType::KeywordLiteral,
+            val: val.into(),
+        }
+    }
+    /// Create a new token of the type [`TokenType::LineComment`].
+    pub fn new_line_comment(val: &str, from: usize, to: usize) -> Token {
+        Token {
+            from,
+            to,
+            typ: TokenType::LineComment,
             val: val.into(),
         }
     }
