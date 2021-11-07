@@ -3,7 +3,6 @@ use crate::char_queue::CharQueue;
 use super::{error::TokenizationErr, Token};
 
 const OPENING_QUOTE: usize = 1;
-const CLOSING_QUOTE: usize = 1;
 
 pub fn string_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
     let start = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
@@ -14,8 +13,7 @@ pub fn string_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, Tok
 
     let from = inp.idx();
     let val = read_until_string_end(inp)?;
-    let len = val.len();
-    let to = OPENING_QUOTE + len + CLOSING_QUOTE;
+    let to = inp.idx();
 
     Ok(Some(Token::new_str(&val, from, to)))
 }
@@ -85,20 +83,25 @@ mod tests {
         let inp = &mut CharQueue::new("\"Hello, \\\"World\\\" 👋\"");
         let t = string_literal_consumer(inp).unwrap();
 
-        let x = Some(Token::new_str("Hello, \"World\" 👋", 0, inp.len()));
-
-        dbg!(&inp, &x, inp.len());
-
-        assert_eq!(t, x);
+        assert_eq!(t, Some(Token::new_str("Hello, \"World\" 👋", 0, inp.len())));
     }
 
     #[test]
     fn at_offset() {
-        unimplemented!()
+        let inp = &mut CharQueue::new("   \"Hello 👋\"");
+        inp.advance_by(3);
+
+        let t = string_literal_consumer(inp).unwrap();
+
+        assert_eq!(t, Some(Token::new_str("Hello 👋", 3, 12)));
     }
 
     #[test]
     fn is_consumed() {
-        unimplemented!()
+        let inp = &mut CharQueue::new("\"string literal\"1");
+
+        string_literal_consumer(inp).unwrap();
+
+        assert_eq!(inp.next(), Some('1'));
     }
 }

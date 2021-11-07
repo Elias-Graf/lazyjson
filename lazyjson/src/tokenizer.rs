@@ -9,9 +9,8 @@ mod string_literal_consumer;
 mod token;
 mod whitespace_consumer;
 
-use std::iter::{Enumerate, Peekable};
+use std::iter::Enumerate;
 use std::slice::Iter;
-use std::str::CharIndices;
 
 pub use token::{Token, TokenType};
 
