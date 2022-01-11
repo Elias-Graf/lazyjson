@@ -20,7 +20,7 @@ fn read_until_non_whitespace(inp: &mut CharQueue) -> String {
             break;
         }
 
-        val.push(c);
+        val.push(*c);
         inp.advance_by(1);
     }
 
@@ -40,7 +40,7 @@ mod tests {
         dbg!(&inp);
 
         assert_eq!(r, e);
-        assert_eq!(inp.next().unwrap(), '1');
+        assert_eq!(inp.next().unwrap(), &'1');
     }
 
     #[test]

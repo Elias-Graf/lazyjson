@@ -3,11 +3,13 @@ use std::iter::Peekable;
 use crate::tokenizer::TokenIndices;
 
 use super::{
-    array_consumer::array_consumer, config::Config, error::TreebuilderErr,
-    keyword_consumer::keyword_consumer, node::Node, number_consumer::number_consumer,
-    object_consumer::object_consumer, string_consumer::string_consumer, Consumer,
+    array_consumer, error::TreebuilderErr, keyword_consumer, node::Node, number_consumer,
+    object_consumer, string_consumer, Config, Consumer,
 };
 
+/// Consumes all possible forms of "value constellations". For example simple
+/// numbers (`1`), or arrays (`[1, 2]`), and so on. This consumer combines other
+/// "sub-consumers" to achieve this behavior.
 pub fn value_consumer(
     toks: &mut Peekable<TokenIndices>,
     config: &Config,
@@ -35,7 +37,7 @@ pub fn value_consumer(
 mod tests {
     use std::collections::HashMap;
 
-    use crate::tokenizer::Token;
+    use crate::{tokenizer::Token, treebuilder::value_consumer};
 
     use super::*;
 

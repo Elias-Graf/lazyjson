@@ -3,20 +3,25 @@ use crate::char_queue::CharQueue;
 use super::{error::TokenizationErr, Token};
 
 const START_OF_LINE_COMMENT: usize = 2;
+const NEW_LINE: usize = 1;
 
-pub fn line_comment_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
-    if !is_start_of_line_comment(inp) {
+pub fn line_comment_consumer(queue: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
+    if !is_start_of_line_comment(queue) {
         return Ok(None);
     }
 
-    let from = inp.idx();
+    let from = queue.idx();
+    let to = queue.find_next_char(&'\n').unwrap_or(queue.len());
 
-    inp.advance_by(START_OF_LINE_COMMENT);
+    let val: String = queue
+        .get(from + START_OF_LINE_COMMENT..to)
+        .unwrap()
+        .into_iter()
+        .collect();
 
-    let to = inp.find_next_by_char('\n').unwrap_or(inp.len());
-    let val = inp.get(from + START_OF_LINE_COMMENT..to).unwrap();
+    queue.advance_by(to - from + NEW_LINE);
 
-    Ok(Some(Token::new_line_comment(val, from, to)))
+    Ok(Some(Token::new_line_comment(&val, from, to)))
 }
 
 fn is_start_of_line_comment(inp: &mut CharQueue) -> bool {
@@ -25,7 +30,7 @@ fn is_start_of_line_comment(inp: &mut CharQueue) -> bool {
         return false;
     }
 
-    let start = inp.get_next(2);
+    let start: String = inp.get_next(2).into_iter().collect();
 
     start == "//"
 }
@@ -45,37 +50,50 @@ mod tests {
     }
 
     #[test]
-    fn line_comment_at_start() {
-        let inp = &mut CharQueue::new("//todo: good code");
-        let t = line_comment_consumer(inp).unwrap();
+    fn comment_at_start() {
+        let queue = &mut CharQueue::new("//todo: good code");
 
         assert_eq!(
-            t,
-            Some(Token::new_line_comment("todo: good code", 0, inp.len()))
+            line_comment_consumer(queue),
+            Ok(Some(Token::new_line_comment(
+                "todo: good code",
+                0,
+                queue.len()
+            )))
         )
     }
 
     #[test]
-    fn line_comment_not_at_start() {
-        let inp = &mut CharQueue::new_with_idx("false// should be true", 5);
-        let t = line_comment_consumer(inp).unwrap();
-
-        assert_eq!(t, Some(Token::new_line_comment(" should be true", 5, 22)))
-    }
-
-    #[test]
-    fn line_comment_terminated_with_new_line() {
-        let inp = &mut CharQueue::new("// config is on next line\nfalse");
-        let t = line_comment_consumer(inp).unwrap();
+    fn comment_not_at_start() {
+        let queue = &mut CharQueue::new("false// should be true");
+        queue.advance_by(5);
 
         assert_eq!(
-            t,
-            Some(Token::new_line_comment(" config is on next line", 0, 25))
+            line_comment_consumer(queue),
+            Ok(Some(Token::new_line_comment(" should be true", 5, 22))),
         )
     }
 
     #[test]
-    fn queue_is_correctly_advanced() {
-        unimplemented!()
+    fn comment_terminated_with_new_line() {
+        let queue = &mut CharQueue::new("// config is on next line\nfalse");
+
+        assert_eq!(
+            line_comment_consumer(queue),
+            Ok(Some(Token::new_line_comment(
+                " config is on next line",
+                0,
+                25
+            ))),
+        )
+    }
+
+    #[test]
+    fn comment_correctly_consumed() {
+        let mut queue = CharQueue::new("// comment\n1");
+
+        let _ = line_comment_consumer(&mut queue);
+
+        assert_eq!(queue.next(), Some(&'1'))
     }
 }

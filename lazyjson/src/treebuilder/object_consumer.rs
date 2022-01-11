@@ -42,7 +42,7 @@ pub fn object_consumer(
             None => return Err(TreebuilderErr::new_unterminated_obj(opn_i, opn_i + 1)),
             Some(&(i, t)) => {
                 if is_obj_cls(t) {
-                    if config.allow_trailing_comma {
+                    if config.allow_trailing_commas {
                         toks.next();
                         return Ok(Some(Node::new_obj(entries, opn_i, i + 1)));
                     }
@@ -171,9 +171,9 @@ mod tests {
 
     #[test]
     fn trailing_sep_allowed() {
-        let config = Config {
-            allow_trailing_comma: true,
-        };
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = true;
+
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
@@ -197,9 +197,9 @@ mod tests {
 
     #[test]
     fn trailing_sep_not_allowed() {
-        let config = Config {
-            allow_trailing_comma: false,
-        };
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = false;
+
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),

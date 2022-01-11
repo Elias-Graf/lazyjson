@@ -75,7 +75,7 @@ fn get_document() -> Document {
 }
 
 fn parse(inp: &str) -> Result<Option<lazyjson::treebuilder::node::Node>, String> {
-    let toks = match lazyjson::tokenizer::tokenize(inp) {
+    let toks = match lazyjson::tokenizer::tokenize(inp, &Config::DEFAULT) {
         Ok(tks) => tks,
         Err(e) => return Err(e.msg(inp)),
     };

@@ -2,6 +2,7 @@ use core::fmt;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TokenizationErrTyp {
+    LineCommentsNotAllowed,
     NoInp,
     OutOfBounds,
     UnterminatedStr,
@@ -15,6 +16,13 @@ pub struct TokenizationErr {
 }
 
 impl TokenizationErr {
+    pub fn new_line_comments_not_allowed(from: usize, to: usize) -> TokenizationErr {
+        TokenizationErr {
+            typ: TokenizationErrTyp::LineCommentsNotAllowed,
+            from,
+            to,
+        }
+    }
     pub fn new_no_inp() -> TokenizationErr {
         TokenizationErr {
             typ: TokenizationErrTyp::NoInp,
@@ -39,6 +47,12 @@ impl TokenizationErr {
 
     pub fn msg(&self, inp: &str) -> String {
         match self.typ {
+            TokenizationErrTyp::LineCommentsNotAllowed => format!(
+                "line comments not allowed, from {}, to {} ('{}')",
+                self.from,
+                self.to,
+                &inp[self.from..self.to],
+            ),
             TokenizationErrTyp::NoInp => "tokenizer did not receive any input".to_string(),
             TokenizationErrTyp::OutOfBounds => {
                 "tried to tokenize outside of input bounds (internal error)".to_string()

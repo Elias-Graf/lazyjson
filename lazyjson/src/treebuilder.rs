@@ -2,17 +2,32 @@ use std::iter::Peekable;
 
 use crate::tokenizer::TokenIndices;
 
-use self::{config::Config, error::TreebuilderErr, node::Node};
+use self::{error::TreebuilderErr, node::Node};
+
+pub mod config;
+pub use config::Config;
+
+pub mod error;
+
+pub mod node;
 
 pub mod array_consumer;
-pub mod config;
-pub mod error;
+pub use array_consumer::array_consumer;
+
 pub mod keyword_consumer;
-pub mod node;
+pub use keyword_consumer::keyword_consumer;
+
 pub mod number_consumer;
+pub use number_consumer::number_consumer;
+
 pub mod object_consumer;
+pub use object_consumer::object_consumer;
+
 pub mod string_consumer;
+pub use string_consumer::string_consumer;
+
 pub mod value_consumer;
+pub use value_consumer::value_consumer;
 
 type Consumer =
     dyn Fn(&mut Peekable<TokenIndices>, &Config) -> Result<Option<Node>, TreebuilderErr>;

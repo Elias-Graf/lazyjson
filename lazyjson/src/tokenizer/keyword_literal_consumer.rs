@@ -17,10 +17,8 @@ pub fn keyword_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, To
 }
 
 fn read_until_non_alphabetical(inp: &mut CharQueue) -> Option<String> {
-    let to = inp
-        .find_next_by_closure(|c| !c.is_alphabetic())
-        .unwrap_or(inp.len());
-    let val = inp.get(inp.idx()..to)?.to_string();
+    let to = inp.find_next(|c| !c.is_alphabetic()).unwrap_or(inp.len());
+    let val = inp.get(inp.idx()..to)?.iter().collect::<String>();
 
     if val.is_empty() {
         return None;
@@ -46,7 +44,7 @@ mod tests {
 
         keyword_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some('1'));
+        assert_eq!(inp.next(), Some(&'1'));
     }
 
     #[test]
@@ -70,7 +68,7 @@ mod tests {
         let inp = &mut CharQueue::new("false ");
         keyword_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some(' '));
+        assert_eq!(inp.next(), Some(&' '));
     }
 
     fn consume_valid_at_start(inp: &str) {

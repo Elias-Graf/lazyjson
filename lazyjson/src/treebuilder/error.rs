@@ -7,9 +7,9 @@ use std::{
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TreebuilderErrTyp {
     NotAKey,
+    NotAnAssignment,
     NotASep,
     NotAVal,
-    NotAnAssignment,
     OutOfBounds,
     TrailingSep,
     UnknownKwd,
@@ -253,14 +253,18 @@ fn get_err_line_bounds(inp: &str, err_from: usize, err_to: usize) -> (usize, usi
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenizer::{self, TokenType};
+    use crate::tokenizer::TokenType;
 
     use super::*;
 
     #[test]
     fn not_a_key_msg() {
         let inp = "{false}";
-        let toks = tokenizer::tokenize(inp).unwrap();
+        let toks = [
+            Token::new_delimiter("{", 0, 1),
+            Token::new_kwd("false", 1, 6),
+            Token::new_delimiter("}", 6, 7),
+        ];
         let msg = TreebuilderErr::new_not_a_key(1).msg(&toks, inp);
 
         assert_eq!(
@@ -279,7 +283,12 @@ mod tests {
             0
             1
         ]";
-        let toks = tokenizer::tokenize(inp).unwrap();
+        let toks = [
+            Token::new_delimiter("[", 0, 1),
+            Token::new_num("0", 14, 15),
+            Token::new_num("1", 28, 29),
+            Token::new_delimiter("]", 38, 39),
+        ];
         let msg = TreebuilderErr::new_not_a_sep(2).msg(&toks, inp);
 
         assert_eq!(
@@ -296,11 +305,16 @@ mod tests {
         let inp = "{
             \"city\": ,
         }";
-        let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_not_a_val(3).msg(&toks, inp);
+        let toks = [
+            Token::new_delimiter("{", 0, 1),
+            Token::new_str("city", 14, 20),
+            Token::new_op(":", 20, 21),
+            Token::new_sep(",", 22, 23),
+            Token::new_delimiter("}", 32, 33),
+        ];
 
         assert_eq!(
-            msg,
+            TreebuilderErr::new_not_a_val(3).msg(&toks, inp),
             format!(
                 "expected one of `[`, `{{`, `{:?}`, `{:?}`, or `{:?}` but received a `{:?}`, line: 2, char: 21\n\n            \"city\": ,\n                    ^\n",
                 TokenType::KeywordLiteral,
@@ -314,11 +328,16 @@ mod tests {
     #[test]
     fn not_an_assignment_msg() {
         let inp = "{\"city\", false}";
-        let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_not_an_assignment(2).msg(&toks, inp);
+        let toks = [
+            Token::new_delimiter("{", 0, 1),
+            Token::new_str("city", 1, 7),
+            Token::new_sep(",", 7, 8),
+            Token::new_kwd("false", 9, 14),
+            Token::new_delimiter("}", 14, 15),
+        ];
 
         assert_eq!(
-            msg,
+            TreebuilderErr::new_not_an_assignment(2).msg(&toks, inp),
             format!("expected a `:` but received a `{:?}`, line: 1, char: 8\n\n{{\"city\", false}}\n       ^\n", TokenType::Separator)
         );
     }
@@ -326,11 +345,17 @@ mod tests {
     #[test]
     fn trailing_sep_msg() {
         let inp = "{\n\"city\": false,}";
-        let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_trailing_sep(4).msg(&toks, inp);
+        let toks = [
+            Token::new_delimiter("{", 0, 1),
+            Token::new_str("city", 2, 8),
+            Token::new_op(":", 8, 9),
+            Token::new_kwd("false", 10, 15),
+            Token::new_sep(",", 15, 16),
+            Token::new_delimiter("}", 16, 17),
+        ];
 
         assert_eq!(
-            msg,
+            TreebuilderErr::new_trailing_sep(4).msg(&toks, inp),
             format!("expected the next value or close (trailing separator not allowed), line: 2, char: 14\n\n\"city\": false,}}\n             ^\n")
         );
     }
@@ -338,11 +363,10 @@ mod tests {
     #[test]
     fn unknown_kwd_msg() {
         let inp = "nil";
-        let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_unknown_kwd(0).msg(&toks, inp);
+        let toks = [Token::new_kwd("nil", 0, 3)];
 
         assert_eq!(
-            msg,
+            TreebuilderErr::new_unknown_kwd(0).msg(&toks, inp),
             format!("received an unknown keyword `nil`, line: 1, char: 1\n\nnil\n^^^\n")
         );
     }
@@ -350,11 +374,13 @@ mod tests {
     #[test]
     fn unterminated_arr_msg() {
         let inp = "[false";
-        let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_unterminated_arr(0, 2).msg(&toks, inp);
+        let toks = [
+            Token::new_delimiter("[", 0, 1),
+            Token::new_kwd("false", 1, 6),
+        ];
 
         assert_eq!(
-            msg,
+            TreebuilderErr::new_unterminated_arr(0, 2).msg(&toks, inp),
             "array was not terminated, line: 1, char: 1\n\n[false\n^^^^^^\n"
         );
     }
@@ -362,11 +388,15 @@ mod tests {
     #[test]
     fn unterminated_obj_msg() {
         let inp = "{\n    \"city\": \"London\"\n";
-        let toks = tokenizer::tokenize(inp).unwrap();
-        let msg = TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp);
+        let toks = [
+            Token::new_delimiter("{", 0, 1),
+            Token::new_str("city", 6, 12),
+            Token::new_op(":", 12, 13),
+            Token::new_str("London", 14, 22),
+        ];
 
         assert_eq!(
-            msg,
+            TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp),
             "object was not terminated, line: 1, char: 1\n\n{\n^\n    \"city\": \"London\"\n^^^^^^^^^^^^^^^^^^^^\n",
         )
     }

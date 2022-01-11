@@ -5,7 +5,7 @@ use super::{error::TokenizationErr, Token};
 pub fn separator_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
     let c = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
 
-    if c != ',' {
+    if c != &',' {
         return Ok(None);
     }
 
@@ -27,7 +27,7 @@ mod tests {
 
         separator_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some('1'));
+        assert_eq!(inp.next(), Some(&'1'));
     }
 
     #[test]
@@ -55,6 +55,6 @@ mod tests {
 
         separator_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some(' '));
+        assert_eq!(inp.next(), Some(&' '));
     }
 }

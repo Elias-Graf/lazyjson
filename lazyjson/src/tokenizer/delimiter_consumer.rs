@@ -29,7 +29,7 @@ mod tests {
         let inp = &mut CharQueue::new("1");
 
         assert_eq!(delimiter_consumer(inp).unwrap(), None);
-        assert_eq!(inp.next().unwrap(), '1');
+        assert_eq!(inp.next().unwrap(), &'1');
     }
 
     #[test]
@@ -64,6 +64,6 @@ mod tests {
         let t = delimiter_consumer(inp).unwrap();
 
         assert_eq!(t, Some(Token::new_delimiter("[", 0, 1)));
-        assert_eq!(inp.next(), Some('1'));
+        assert_eq!(inp.next(), Some(&'1'));
     }
 }

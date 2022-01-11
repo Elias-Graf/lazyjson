@@ -18,14 +18,14 @@ pub fn number_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, Tok
 
 fn read_until_non_numeric(inp: &mut CharQueue) -> Option<String> {
     let to = inp
-        .find_next_by_closure(|c| !c.is_numeric() && c != '.')
+        .find_next(|c| !c.is_numeric() && c != &'.')
         .unwrap_or(inp.len());
     let val = inp.get(inp.idx()..to)?;
 
     if val.is_empty() {
         return None;
     }
-    Some(val.to_string())
+    Some(val.iter().collect())
 }
 
 #[cfg(test)]
@@ -46,7 +46,7 @@ pub mod tests {
 
         number_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some('a'));
+        assert_eq!(inp.next(), Some(&'a'));
     }
 
     #[test]
@@ -71,6 +71,6 @@ pub mod tests {
 
         number_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some(' '));
+        assert_eq!(inp.next(), Some(&' '));
     }
 }

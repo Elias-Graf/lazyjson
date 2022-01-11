@@ -7,7 +7,7 @@ const OPENING_QUOTE: usize = 1;
 pub fn string_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
     let start = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
 
-    if start != '"' {
+    if start != &'"' {
         return Ok(None);
     }
 
@@ -25,16 +25,18 @@ fn read_until_string_end(inp: &mut CharQueue) -> Result<String, TokenizationErr>
     inp.advance_by(OPENING_QUOTE);
 
     loop {
+        let idx = inp.idx();
+
         let c = inp
             .next()
-            .ok_or(TokenizationErr::new_unterminated_str(from, inp.idx()))?;
+            .ok_or(TokenizationErr::new_unterminated_str(from, idx))?;
 
         match c {
             '"' => break,
             // If we have an escaped character we push it no matter what (for example
             // an escaped quote).
-            '\\' => str.push(inp.next().unwrap()),
-            _ => str.push(c),
+            '\\' => str.push(*inp.next().unwrap()),
+            _ => str.push(*c),
         }
     }
 
@@ -51,7 +53,7 @@ mod tests {
 
         string_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some('1'));
+        assert_eq!(inp.next(), Some(&'1'));
     }
 
     #[test]
@@ -102,6 +104,6 @@ mod tests {
 
         string_literal_consumer(inp).unwrap();
 
-        assert_eq!(inp.next(), Some('1'));
+        assert_eq!(inp.next(), Some(&'1'));
     }
 }

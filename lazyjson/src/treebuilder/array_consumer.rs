@@ -37,7 +37,7 @@ pub fn array_consumer(
 
         // If the array is now closed, we have a trailing separator
         if is_arr_cls(cls_t) {
-            if config.allow_trailing_comma {
+            if config.allow_trailing_commas {
                 toks.next();
                 return Ok(Some(Node::new_arr(entries, opn_i, cls_i + 1)));
             } else {
@@ -152,9 +152,9 @@ mod tests {
 
     #[test]
     fn trailing_sep_allowed() {
-        let config = Config {
-            allow_trailing_comma: true,
-        };
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = true;
+
         let toks = [
             Token::new_delimiter("[", 0, 0),
             Token::new_num("123", 0, 0),
@@ -173,9 +173,9 @@ mod tests {
 
     #[test]
     fn trailing_sep_not_allowed() {
-        let config = Config {
-            allow_trailing_comma: false,
-        };
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = false;
+
         let toks = [
             Token::new_delimiter("[", 0, 0),
             Token::new_num("123", 0, 0),
