@@ -37,6 +37,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lazyjson-emitter-json"
+version = "0.1.0"
+dependencies = [
+ "lazyjson",
+]
+
+[[package]]
 name = "lazyjson-wasm"
 version = "0.1.0"
 dependencies = [

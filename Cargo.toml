@@ -2,5 +2,6 @@
 
 members = [
   "lazyjson",
+  "emitter/json",
   "lazyjson-wasm",
 ]
