@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::tokenizer::TokenIndices;
 
-use self::{error::TreebuilderErr, node::Node};
+use self::{error::TreebuilderErr};
 
 pub mod config;
 pub use config::Config;
@@ -10,6 +10,8 @@ pub use config::Config;
 pub mod error;
 
 pub mod node;
+pub use node::Node;
+pub use node::NodeSpecific;
 
 pub mod array_consumer;
 pub use array_consumer::array_consumer;
