@@ -1,5 +1,6 @@
 use treebuilder::{config::Config, node::Node};
 
+pub mod emit;
 pub mod peak_while;
 pub mod tokenizer;
 pub mod treebuilder;

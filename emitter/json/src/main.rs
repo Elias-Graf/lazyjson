@@ -1,8 +1,7 @@
-use std::{fs, env};
+use std::{env, fs};
 
 use lazyjson_core::treebuilder::Config;
-
-use lazyjson_emitter_json::Emit;
+use lazyjson_emitter_json::EmitJson;
 
 fn main() -> Result<(), u8> {
     let args: Vec<String> = env::args().collect();
@@ -16,10 +15,10 @@ fn main() -> Result<(), u8> {
         Err(e) => {
             eprint!("{}", e);
             return Err(1);
-        },
+        }
         Ok(n) => {
-            fs::write(out_file_path, n.unwrap().emit(0)).unwrap();
-        },
+            fs::write(out_file_path, n.unwrap().emit_json(0)).unwrap();
+        }
     }
 
     Ok(())
