@@ -2,7 +2,7 @@ use std::iter::Peekable;
 
 use crate::tokenizer::TokenIndices;
 
-use self::{error::TreebuilderErr};
+use self::error::TreebuilderErr;
 
 pub mod config;
 pub use config::Config;
