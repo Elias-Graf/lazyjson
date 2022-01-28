@@ -140,7 +140,7 @@ mod tests {
             Token::new_delimiter("[", 0, 0),
             Token::new_num("1", 0, 0),
             Token::new_sep(",", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_delimiter("]", 0, 0),
         ];
         let r =

@@ -135,7 +135,7 @@ mod tests {
     #[test]
     fn operators() {
         let r = tokenize(":", &Config::DEFAULT).unwrap();
-        let e = [Token::new_op(":", 0, 1)];
+        let e = [Token::new_json_assignment_op(0)];
 
         assert_eq!(r, e);
     }

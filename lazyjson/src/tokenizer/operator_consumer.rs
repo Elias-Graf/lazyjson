@@ -6,7 +6,7 @@ pub fn operator_consumer(inp: &mut CharQueue) -> Result<Option<Token>, Tokenizat
     let c = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
 
     let tok = match c {
-        ':' => Token::new_op(":", inp.idx(), inp.idx() + 1),
+        ':' => Token::new_json_assignment_op(inp.idx()),
         '=' => Token::new_equal_assignment_op(inp.idx()),
         _ => return Ok(None),
     };
@@ -42,7 +42,7 @@ mod tests {
         let inp = &mut CharQueue::new(":");
         let t = operator_consumer(inp).unwrap();
 
-        assert_eq!(t, Some(Token::new_op(":", 0, 1)));
+        assert_eq!(t, Some(Token::new_json_assignment_op(0)));
     }
 
     #[test]
@@ -63,7 +63,7 @@ mod tests {
 
         let t = operator_consumer(inp).unwrap();
 
-        assert_eq!(t, Some(Token::new_op(":", 1, 2)));
+        assert_eq!(t, Some(Token::new_json_assignment_op(1)));
     }
 
     #[test]

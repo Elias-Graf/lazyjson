@@ -308,7 +308,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 14, 20),
-            Token::new_op(":", 20, 21),
+            Token::new_json_assignment_op(20),
             Token::new_sep(",", 22, 23),
             Token::new_delimiter("}", 32, 33),
         ];
@@ -348,7 +348,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 2, 8),
-            Token::new_op(":", 8, 9),
+            Token::new_json_assignment_op(9),
             Token::new_kwd("false", 10, 15),
             Token::new_sep(",", 15, 16),
             Token::new_delimiter("}", 16, 17),
@@ -391,7 +391,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 6, 12),
-            Token::new_op(":", 12, 13),
+            Token::new_json_assignment_op(12),
             Token::new_str("London", 14, 22),
         ];
 

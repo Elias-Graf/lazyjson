@@ -6,16 +6,14 @@ use std::fmt;
 pub enum TokenType {
     Delimiter,
     /// Refers to the "normal assignment operator" ('='). In opposition to the
-    /// [`TokenType::Operator`]
+    /// [`TokenType::JsonAssignmentOperator`]
     EqualAssignmentOperator,
     KeywordLiteral,
     LineComment,
     NumberLiteral,
-    // TODO: rename to something more sensible, see the following description, and
-    // the type referenced in it for more information. left: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }, Token { from: 14, to: 15, typ: Delimiter, val: "}" }]`, right: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }]`', lazyjson\src\tokenizer.rs:194:9 left: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }, Token { from: 14, to: 15, typ: Delimiter, val: "}" }]`, right: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }]`', lazyjson\src\tokenizer.rs:194:9 left: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }, Token { from: 14, to: 15, typ: Delimiter, val: "}" }]`, right: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }]`', lazyjson\src\tokenizer.rs:194:9 left: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }, Token { from: 14, to: 15, typ: Delimiter, val: "}" }]`, right: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }]`', lazyjson\src\tokenizer.rs:194:9 left: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }, Token { from: 14, to: 15, typ: Delimiter, val: "}" }]`, right: `[Token { from: 0, to: 1, typ: Delimiter, val: "{" }, Token { from: 1, to: 4, typ: KeywordLiteral, val: "let" }, Token { from: 5, to: 9, typ: KeywordLiteral, val: "test" }, Token { from: 10, to: 11, typ: EqualAssignmentOperator, val: "" }, Token { from: 12, to: 14, typ: NumberLiteral, val: "10" }]`', lazyjson\src\tokenizer.rs:194:9
     /// Refers to the "jason assignment operator" (':'). In opposition to the
     /// [`TokenType::EqualAssignmentOperator`].
-    Operator,
+    JsonAssignmentOperator,
     Separator,
     StringLiteral,
     WhitespaceLiteral,
@@ -75,14 +73,13 @@ impl Token {
             val: val.into(),
         }
     }
-    // TODO: rename to a better name, see [`TokenType::Operator`] for more information.
-    /// Create a new token of the type [`TokenType::Operator`].
-    pub fn new_op(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::JsonAssignmentOperator`].
+    pub fn new_json_assignment_op(idx: usize) -> Token {
         Token {
-            from,
-            to,
-            typ: TokenType::Operator,
-            val: val.into(),
+            from: idx,
+            to: idx + 1,
+            typ: TokenType::JsonAssignmentOperator,
+            val: "".into(),
         }
     }
     /// Create a new token of the type [`TokenType::Separator`].

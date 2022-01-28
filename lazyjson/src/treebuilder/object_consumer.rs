@@ -66,7 +66,7 @@ pub fn object_consumer(
         match toks.next() {
             None => return Err(TreebuilderErr::new_unterminated_obj(key_i, key_i + 1)),
             Some((i, assign_op_t)) => {
-                if assign_op_t.typ != TokenType::Operator || assign_op_t.val != ":" {
+                if assign_op_t.typ != TokenType::JsonAssignmentOperator {
                     return Err(TreebuilderErr::new_not_an_assignment(i));
                 }
             }
@@ -142,7 +142,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_kwd("false", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("val", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
@@ -177,7 +177,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("val", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_delimiter("}", 0, 0),
@@ -203,7 +203,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("val", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_delimiter("}", 0, 0),
@@ -220,10 +220,10 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key1", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("val1", 0, 0),
             Token::new_str("key2", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("val2", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
@@ -256,7 +256,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("val", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
@@ -276,25 +276,25 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key_arr", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_delimiter("[", 0, 0),
             Token::new_delimiter("]", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("key_kwd", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_kwd("false", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("key_num", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_num("123", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("key_obj", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_delimiter("{", 0, 0),
             Token::new_delimiter("}", 0, 0),
             Token::new_sep(",", 0, 0),
             Token::new_str("key_str", 0, 0),
-            Token::new_op(":", 0, 0),
+            Token::new_json_assignment_op(0),
             Token::new_str("Hello, World!", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
