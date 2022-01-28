@@ -2,6 +2,8 @@ use super::{error::TokenizationErr, token::*};
 
 use crate::char_queue::CharQueue;
 
+// TODO: split up into "keyword literals" (hardcoded and predefined), and name literals
+// (dynamic and user supplied).
 pub fn keyword_literal_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
     let kwd = match read_until_non_alphabetical(inp) {
         Some(kwd) => kwd,

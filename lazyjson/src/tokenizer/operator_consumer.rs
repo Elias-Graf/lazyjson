@@ -5,16 +5,15 @@ use super::{error::TokenizationErr, Token};
 pub fn operator_consumer(inp: &mut CharQueue) -> Result<Option<Token>, TokenizationErr> {
     let c = inp.peek().ok_or(TokenizationErr::new_out_of_bounds())?;
 
-    if c != &':' {
-        return Ok(None);
-    }
-
-    let from = inp.idx();
-    let to = from + 1;
+    let tok = match c {
+        ':' => Token::new_op(":", inp.idx(), inp.idx() + 1),
+        '=' => Token::new_equal_assignment_op(inp.idx()),
+        _ => return Ok(None),
+    };
 
     inp.advance_by(1);
 
-    Ok(Some(Token::new_op(":", from, to)))
+    Ok(Some(tok))
 }
 
 #[cfg(test)]
@@ -39,11 +38,21 @@ mod tests {
     }
 
     #[test]
-    fn at_start() {
+    fn json_assignment() {
         let inp = &mut CharQueue::new(":");
         let t = operator_consumer(inp).unwrap();
 
         assert_eq!(t, Some(Token::new_op(":", 0, 1)));
+    }
+
+    #[test]
+    fn equal_assignment() {
+        let inp = &mut CharQueue::new("=");
+
+        assert_eq!(
+            operator_consumer(inp),
+            Ok(Some(Token::new_equal_assignment_op(0)))
+        )
     }
 
     #[test]

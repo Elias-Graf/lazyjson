@@ -190,6 +190,21 @@ mod tests {
     }
 
     #[test]
+    fn variable() {
+        assert_eq!(
+            tokenize("{let test = 10}", &Config::DEFAULT).unwrap(),
+            [
+                Token::new_delimiter("{", 0, 1),
+                Token::new_kwd("let", 1, 4),
+                Token::new_kwd("test", 5, 9),
+                Token::new_equal_assignment_op(10),
+                Token::new_num("10", 12, 14),
+                Token::new_delimiter("}", 14, 15),
+            ],
+        );
+    }
+
+    #[test]
     fn comments_allowed() {
         let mut config = Config::DEFAULT;
         config.allow_line_comments = true;
