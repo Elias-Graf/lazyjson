@@ -1,5 +1,6 @@
 use std::iter::Peekable;
 
+use crate::tokenizer::Token;
 use crate::tokenizer::TokenIndices;
 
 use self::error::TreebuilderErr;
@@ -33,6 +34,10 @@ pub use value_consumer::value_consumer;
 
 type Consumer =
     dyn Fn(&mut Peekable<TokenIndices>, &Config) -> Result<Option<Node>, TreebuilderErr>;
+
+pub fn build(inp: &[Token], config: &Config) -> Result<Option<Node>, TreebuilderErr> {
+    value_consumer(&mut inp.iter().enumerate().peekable(), config)
+}
 
 #[cfg(test)]
 mod tests {

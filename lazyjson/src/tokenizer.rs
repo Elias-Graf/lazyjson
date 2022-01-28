@@ -1,7 +1,8 @@
 use std::iter::Enumerate;
 use std::slice::Iter;
 
-mod error;
+pub mod error;
+pub use error::TokenizationErr;
 
 mod delimiter_consumer;
 pub use delimiter_consumer::delimiter_consumer;
@@ -28,8 +29,6 @@ mod whitespace_consumer;
 pub use whitespace_consumer::whitespace_consumer;
 
 mod token;
-
-use error::TokenizationErr;
 pub use token::{Token, TokenType};
 
 use crate::{char_queue::CharQueue, treebuilder::Config};
