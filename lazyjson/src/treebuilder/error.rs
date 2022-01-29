@@ -7,9 +7,12 @@ use std::{
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TreebuilderErrTyp {
     NotAKey,
-    NotAnAssignment,
     NotASep,
     NotAVal,
+    // TODO: rename to NotJsonAssignment
+    NotAnAssignment,
+    NotEqualAssignment,
+    NotVariableName,
     OutOfBounds,
     TrailingSep,
     UnknownKwd,
@@ -33,6 +36,14 @@ impl fmt::Display for TreebuilderErr {
 impl Error for TreebuilderErr {}
 
 impl TreebuilderErr {
+    /// Creates a new error of the typ [`TreebuilderErrTyp::ExpectedVariableName`].
+    pub fn new_not_var_name(i: usize) -> TreebuilderErr {
+        TreebuilderErr {
+            from: i,
+            to: i + 1,
+            typ: TreebuilderErrTyp::NotVariableName,
+        }
+    }
     /// Creates a new error of the typ [`TreebuilderErrTyp::NotAKey`].
     pub fn new_not_a_key(i: usize) -> TreebuilderErr {
         TreebuilderErr {
@@ -61,6 +72,13 @@ impl TreebuilderErr {
     pub fn new_not_an_assignment(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::NotAnAssignment,
+            from: i,
+            to: i + 1,
+        }
+    }
+    pub fn new_not_equals_assignment(i: usize) -> TreebuilderErr {
+        TreebuilderErr {
+            typ: TreebuilderErrTyp::NotEqualAssignment,
             from: i,
             to: i + 1,
         }
@@ -125,6 +143,7 @@ impl TreebuilderErr {
 
 fn get_verbal_hint(typ: TreebuilderErrTyp, err_tok: &Token) -> String {
     match typ {
+        TreebuilderErrTyp::NotVariableName => "expected a variable name".to_string(),
         TreebuilderErrTyp::UnterminatedArr => "array was not terminated".to_string(),
         TreebuilderErrTyp::UnterminatedObj => "object was not terminated".to_string(),
         TreebuilderErrTyp::TrailingSep => {
@@ -147,6 +166,7 @@ fn get_verbal_hint(typ: TreebuilderErrTyp, err_tok: &Token) -> String {
         TreebuilderErrTyp::NotAnAssignment => {
             format!("expected a `:` but received a `{:?}`", err_tok.typ)
         }
+        TreebuilderErrTyp::NotEqualAssignment => "expected a assignment operator: '='".to_string(),
         TreebuilderErrTyp::OutOfBounds => {
             ">> INTERNAL ERROR - OUT OF BOUNDS << please submit a bug report with the JSON"
                 .to_string()

@@ -4,8 +4,11 @@ use crate::tokenizer::TokenIndices;
 
 use super::{
     array_consumer, error::TreebuilderErr, keyword_consumer, node::Node, number_consumer,
-    object_consumer, string_consumer, Config, Consumer,
+    object_consumer, string_consumer, Config,
 };
+
+type Consumer =
+    dyn Fn(&mut Peekable<TokenIndices>, &Config) -> Result<Option<Node>, TreebuilderErr>;
 
 /// Consumes all possible forms of "value constellations". For example simple
 /// numbers (`1`), or arrays (`[1, 2]`), and so on. This consumer combines other
