@@ -98,11 +98,11 @@ impl TreebuilderErr {
         }
     }
     /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedObj`].
-    pub fn new_unterminated_obj(from: usize, to: usize) -> TreebuilderErr {
+    pub fn new_unterminated_obj(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UnterminatedObj,
-            from,
-            to,
+            from: i,
+            to: i + 1,
         }
     }
 
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn unterminated_obj_msg() {
-        let inp = "{\n    \"city\": \"London\"\n";
+        let inp_str = "{\n    \"city\": \"London\"\n";
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 6, 12),
@@ -396,8 +396,8 @@ mod tests {
         ];
 
         assert_eq!(
-            TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp),
-            "object was not terminated, line: 1, char: 1\n\n{\n^\n    \"city\": \"London\"\n^^^^^^^^^^^^^^^^^^^^\n",
+            TreebuilderErr::new_unterminated_obj(3).msg(&toks, inp_str),
+            "object was not terminated, line: 2, char: 13\n\n    \"city\": \"London\"\n            ^^^^^^^^\n",
         )
     }
 }
