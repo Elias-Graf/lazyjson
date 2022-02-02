@@ -1,9 +1,17 @@
-use super::{config::Config, error::TreebuilderErr, node::Node, value_consumer::value_consumer};
+use super::{
+    config::Config,
+    error::TreebuilderErr,
+    node::{Node, ObjectSpecific},
+    value_consumer::value_consumer,
+    var_dict::VarDict,
+    variable_definition_consumer::variable_definition_consumer,
+};
 use crate::tokenizer::{Token, TokenIndices, TokenType};
-use std::{collections::HashMap, iter::Peekable};
+use std::{cell::RefCell, collections::HashMap, iter::Peekable, rc::Rc};
 
 pub fn object_consumer(
     inp: &mut Peekable<TokenIndices>,
+    var_dict: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
     let (opn_i, _) = match consume_obj_opn(inp) {
@@ -12,25 +20,38 @@ pub fn object_consumer(
     };
 
     let mut entries = HashMap::new();
+    let var_dict = RefCell::new(VarDict::new_with_parent(var_dict));
 
     // Check if the object is immediately closed again.
     if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
-        return Ok(Some(Node::new_obj(entries, opn_i, cls_i + 1)));
+        return Ok(Some(Node::new_obj(entries, opn_i, cls_i + 1).into()));
     }
 
     loop {
-        let (key_i, key) = consume_key(inp)?;
+        if let Some((var_key, var_val)) = variable_definition_consumer(inp, config)? {
+            var_dict.borrow_mut().insert(var_key, var_val);
+        } else {
+            let (key_i, key) = consume_key(inp)?;
 
-        consume_assignment(inp, key_i)?;
+            consume_assignment(inp, key_i)?;
 
-        let val = match value_consumer(inp, &Config::DEFAULT)? {
-            None => return Err(TreebuilderErr::new_not_a_val(inp.next().unwrap().0)),
-            Some(v) => v,
-        };
-        entries.insert(key, val);
+            let val = match value_consumer(
+                inp,
+                &Rc::new(var_dict.borrow().to_owned()),
+                &Config::DEFAULT,
+            )? {
+                None => return Err(TreebuilderErr::new_not_a_val(inp.next().unwrap().0)),
+                Some(v) => v,
+            };
+            entries.insert(key, val);
+        }
 
         if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
-            return Ok(Some(Node::new_obj(entries, opn_i, cls_i + 1)));
+            let mut obj = ObjectSpecific::new(opn_i, cls_i + 1);
+            obj.entries = entries;
+            obj.var_dict = var_dict.borrow().to_owned();
+
+            return Ok(Some(obj.into()));
         }
 
         consume_val_sep(inp)?;
@@ -38,8 +59,12 @@ pub fn object_consumer(
         // Check if the next token is an object close, if yes, we have a trailing
         // separator.
         if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
+            let mut obj = ObjectSpecific::new(opn_i, cls_i + 1);
+            obj.entries = entries;
+            obj.var_dict = var_dict.borrow().to_owned();
+
             if config.allow_trailing_commas {
-                return Ok(Some(Node::new_obj(entries, opn_i, cls_i + 1)));
+                return Ok(Some(obj.into()));
             }
 
             return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
@@ -114,7 +139,7 @@ fn consume_val_sep<'a>(inp: &'a mut Peekable<TokenIndices>) -> Result<(), Treebu
 
 #[cfg(test)]
 mod tests {
-    use crate::tokenizer::Token;
+    use crate::{tokenizer::Token, treebuilder::node::ObjectSpecific};
 
     use super::*;
 
@@ -122,7 +147,7 @@ mod tests {
     fn non_object() {
         let toks = [Token::new_num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = object_consumer(toks_iter, &Config::DEFAULT).unwrap();
+        let r = object_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
         let e = None;
 
         assert_eq!(r, e);
@@ -132,8 +157,12 @@ mod tests {
     #[test]
     fn unterminated() {
         let toks = [Token::new_delimiter("{", 0, 0)];
-        let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
+        let r = object_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap_err();
         let e = TreebuilderErr::new_unterminated_obj(0);
 
         assert_eq!(r, e);
@@ -148,8 +177,12 @@ mod tests {
             Token::new_str("val", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
-        let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
+        let r = object_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap_err();
         let e = TreebuilderErr::new_not_a_key(1);
 
         assert_eq!(r, e);
@@ -164,8 +197,12 @@ mod tests {
             Token::new_str("val", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
-        let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
+        let r = object_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap_err();
         let e = TreebuilderErr::new_not_an_assignment(2);
 
         assert_eq!(r, e);
@@ -176,7 +213,7 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = true;
 
-        let toks = [
+        let inp = [
             Token::new_delimiter("{", 0, 0),
             Token::new_str("key", 0, 0),
             Token::new_json_assignment_op(0),
@@ -184,17 +221,20 @@ mod tests {
             Token::new_sep(",", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
+        let inp = &mut inp.iter().enumerate().peekable();
 
-        let mut entries = HashMap::new();
-        entries.insert("key".to_string(), Node::new_str("val", 3, 4));
+        let mut exp_obj = ObjectSpecific::new(0, 6);
+        exp_obj
+            .entries
+            .insert("key".to_string(), Node::new_str("val", 3, 4));
+        exp_obj.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
 
-        let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = object_consumer(toks_iter, &config).unwrap();
-        let e = Some(Node::new_obj(entries, 0, 6));
-
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &config),
+            Ok(Some(exp_obj.into()))
+        );
         // It should consume the closing brace
-        assert_eq!(toks_iter.next(), None);
+        assert_eq!(inp.next(), None);
     }
 
     #[test]
@@ -211,7 +251,12 @@ mod tests {
             Token::new_delimiter("}", 0, 0),
         ];
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
+        let r = object_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &config,
+        )
+        .unwrap_err();
         let e = TreebuilderErr::new_trailing_sep(4);
 
         assert_eq!(r, e);
@@ -234,8 +279,12 @@ mod tests {
 
         e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
-        let r =
-            object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
+        let r = object_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap_err();
         let e = TreebuilderErr::new_not_a_sep(4);
 
         assert_eq!(r, e);
@@ -247,8 +296,13 @@ mod tests {
             Token::new_delimiter("{", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
-        let e = Some(Node::new_obj(HashMap::new(), 0, 2));
+        let r = object_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap();
+        let e = Some(Node::new_obj(HashMap::new(), 0, 2).into());
 
         assert_eq!(r, e);
     }
@@ -263,14 +317,21 @@ mod tests {
             Token::new_delimiter("}", 0, 0),
         ];
 
-        let mut e_entries = HashMap::new();
+        let mut exp_entries = HashMap::new();
+        exp_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
 
-        e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
+        let mut exp_obj = ObjectSpecific::new(0, 5);
+        exp_obj.entries = exp_entries;
+        exp_obj.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
-        let e = Some(Node::new_obj(e_entries, 0, 5));
-
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Ok(Some(exp_obj.into()))
+        );
     }
 
     #[test]
@@ -301,20 +362,116 @@ mod tests {
             Token::new_delimiter("}", 0, 0),
         ];
 
-        let mut e_entries = HashMap::new();
-
-        e_entries.insert("key_arr".to_string(), Node::new_arr(Vec::new(), 3, 5));
-        e_entries.insert("key_kwd".to_string(), Node::new_bool(false, 8, 9));
-        e_entries.insert("key_num".to_string(), Node::new_num("123", 12, 13));
-        e_entries.insert("key_obj".to_string(), Node::new_obj(HashMap::new(), 16, 18));
-        e_entries.insert(
+        let mut exp_entries = HashMap::new();
+        exp_entries.insert("key_arr".to_string(), Node::new_arr(Vec::new(), 3, 5));
+        exp_entries.insert("key_kwd".to_string(), Node::new_bool(false, 8, 9));
+        exp_entries.insert("key_num".to_string(), Node::new_num("123", 12, 13));
+        exp_entries.insert(
+            "key_obj".to_string(),
+            Node::new_obj(HashMap::new(), 16, 18).into(),
+        );
+        exp_entries.insert(
             "key_str".to_string(),
             Node::new_str("Hello, World!", 21, 22),
         );
 
-        let r = object_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
-        let e = Some(Node::new_obj(e_entries, 0, 23));
+        let mut exp_obj = ObjectSpecific::new(0, 23);
+        exp_obj.entries = exp_entries;
+        exp_obj.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
 
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Ok(Some(exp_obj.into()))
+        );
+    }
+
+    #[test]
+    fn declare_variable() {
+        let inp = [
+            Token::new_delimiter("{", 0, 0),
+            Token::new_kwd("let", 0, 0),
+            Token::new_kwd("foo", 0, 0),
+            Token::new_equal_assignment_op(0),
+            Token::new_str("foo", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_str("bar", 0, 0),
+            Token::new_json_assignment_op(0),
+            Token::new_str("bar", 0, 0),
+            Token::new_delimiter("}", 0, 0),
+        ];
+        let inp = &mut inp.iter().enumerate().peekable();
+
+        let mut exp_obj = ObjectSpecific::new(0, 10);
+        exp_obj.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
+        exp_obj
+            .var_dict
+            .insert("foo".into(), Node::new_str("foo", 4, 5));
+        exp_obj
+            .entries
+            .insert("bar".into(), Node::new_str("bar", 8, 9));
+
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(exp_obj.into()))
+        )
+    }
+
+    #[test]
+    fn declare_variable_with_trailing_sep() {
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = true;
+
+        let inp = [
+            Token::new_delimiter("{", 0, 0),
+            Token::new_kwd("let", 0, 0),
+            Token::new_kwd("num", 0, 0),
+            Token::new_equal_assignment_op(0),
+            Token::new_num("10", 0, 0),
+            Token::new_sep(",", 0, 0),
+            Token::new_delimiter("}", 0, 0),
+        ];
+        let inp = &mut inp.iter().enumerate().peekable();
+
+        let mut exp_obj = ObjectSpecific::new(0, 7);
+        exp_obj.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
+        exp_obj
+            .var_dict
+            .insert("num".into(), Node::new_num("10", 4, 5));
+
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &config),
+            Ok(Some(exp_obj.into()))
+        );
+    }
+
+    #[test]
+    fn use_variable() {
+        let inp = [
+            Token::new_delimiter("{", 0, 0),
+            Token::new_str("foo", 0, 0),
+            Token::new_json_assignment_op(0),
+            Token::new_kwd("bar", 0, 0),
+            Token::new_delimiter("}", 0, 0),
+        ];
+        let inp = &mut inp.iter().enumerate().peekable();
+
+        let mut var_dict = VarDict::new();
+        var_dict.insert("bar".into(), Node::new_num("5", 0, 0));
+        let var_dict = Rc::new(var_dict);
+
+        let mut exp_obj = ObjectSpecific::new(0, 5);
+        exp_obj
+            .entries
+            .insert("foo".into(), Node::new_num("5", 0, 0));
+        exp_obj.var_dict = VarDict::new_with_parent(&var_dict);
+
+        assert_eq!(
+            object_consumer(inp, &var_dict, &Config::DEFAULT),
+            Ok(Some(exp_obj.into()))
+        );
     }
 }

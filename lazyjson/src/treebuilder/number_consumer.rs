@@ -1,11 +1,12 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, rc::Rc};
 
 use crate::tokenizer::{TokenIndices, TokenType};
 
-use super::{config::Config, error::TreebuilderErr, node::Node};
+use super::{config::Config, error::TreebuilderErr, node::Node, var_dict::VarDict};
 
 pub fn number_consumer(
     toks: &mut Peekable<TokenIndices>,
+    _: &Rc<VarDict>,
     _: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
     let (i, t) = match toks.peek() {

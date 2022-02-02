@@ -7,6 +7,7 @@ pub mod number_consumer;
 pub mod object_consumer;
 pub mod string_consumer;
 pub mod value_consumer;
+pub mod var_dict;
 
 pub use array_consumer::array_consumer;
 pub use config::Config;
@@ -18,14 +19,19 @@ pub use number_consumer::number_consumer;
 pub use object_consumer::object_consumer;
 pub use string_consumer::string_consumer;
 pub use value_consumer::value_consumer;
+pub use var_dict::VarDict;
 
-mod variable_consumer;
+mod variable_definition_consumer;
+mod variable_usage_consumer;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::rc::Rc;
 
-    use crate::{tokenizer::Token, treebuilder::value_consumer::value_consumer};
+    use crate::{
+        tokenizer::Token,
+        treebuilder::{node::ObjectSpecific, value_consumer::value_consumer, var_dict::VarDict},
+    };
 
     use super::*;
 
@@ -65,28 +71,43 @@ mod tests {
             Token::new_delimiter("]", 0, 0),
         ];
 
-        let r = value_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
+        let mut downtown = ObjectSpecific::new(1, 14);
+        downtown
+            .entries
+            .insert("name".to_string(), Node::new_str("Downtown", 4, 5));
+        downtown
+            .entries
+            .insert("code".to_string(), Node::new_num("123", 8, 9));
+        downtown
+            .entries
+            .insert("searchable".to_string(), Node::new_bool(true, 12, 13));
 
-        let mut downtown_entries = HashMap::new();
-        downtown_entries.insert("name".to_string(), Node::new_str("Downtown", 4, 5));
-        downtown_entries.insert("code".to_string(), Node::new_num("123", 8, 9));
-        downtown_entries.insert("searchable".to_string(), Node::new_bool(true, 12, 13));
+        downtown.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
 
-        let mut uptown_entries = HashMap::new();
-        uptown_entries.insert("name".to_string(), Node::new_str("Uptown", 18, 19));
-        uptown_entries.insert("code".to_string(), Node::new_num("456", 22, 23));
-        uptown_entries.insert("searchable".to_string(), Node::new_bool(false, 26, 27));
+        let mut uptown = ObjectSpecific::new(15, 28);
+        uptown
+            .entries
+            .insert("name".to_string(), Node::new_str("Uptown", 18, 19));
+        uptown
+            .entries
+            .insert("code".to_string(), Node::new_num("456", 22, 23));
+        uptown
+            .entries
+            .insert("searchable".to_string(), Node::new_bool(false, 26, 27));
 
-        let e = Some(Node::new_arr(
-            vec![
-                Node::new_obj(downtown_entries, 1, 14),
-                Node::new_obj(uptown_entries, 15, 28),
-                Node::new_null(29, 30),
-            ],
-            0,
-            31,
-        ));
+        uptown.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
 
-        assert_eq!(r, e);
+        assert_eq!(
+            value_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Ok(Some(Node::new_arr(
+                vec![downtown.into(), uptown.into(), Node::new_null(29, 30),],
+                0,
+                31,
+            )))
+        );
     }
 }

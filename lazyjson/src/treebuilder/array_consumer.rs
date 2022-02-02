@@ -1,12 +1,15 @@
 use std::iter::Peekable;
+use std::rc::Rc;
 
 use crate::tokenizer::{Token, TokenIndices, TokenType};
 
 use super::config::Config;
+use super::var_dict::VarDict;
 use super::{error::TreebuilderErr, node::Node, value_consumer::value_consumer};
 
 pub fn array_consumer(
     toks: &mut Peekable<TokenIndices>,
+    _: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
     let &(opn_i, opn_tok) = toks.peek().ok_or(TreebuilderErr::new_out_of_bounds())?;
@@ -45,7 +48,7 @@ pub fn array_consumer(
             }
         }
 
-        let entry = value_consumer(toks, &Config::DEFAULT)?.ok_or(
+        let entry = value_consumer(toks, &Rc::new(VarDict::new()), &Config::DEFAULT)?.ok_or(
             TreebuilderErr::new_not_a_val(get_last_tok_idx(&entries) + 1),
         )?;
 
@@ -91,32 +94,41 @@ mod tests {
     #[test]
     fn empty_input() {
         let toks = [];
-        let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
-        let e = TreebuilderErr::new_out_of_bounds();
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Err(TreebuilderErr::new_out_of_bounds())
+        );
     }
 
     #[test]
     fn non_array() {
         let toks = [Token::new_num("0", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = array_consumer(toks_iter, &Config::DEFAULT).unwrap();
-        let e = None;
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(None)
+        );
         assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("0", 0, 0)));
     }
 
     #[test]
     fn unterminated() {
         let toks = [Token::new_delimiter("[", 0, 0)];
-        let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
-        let e = TreebuilderErr::new_unterminated_arr(0, 1);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Err(TreebuilderErr::new_unterminated_arr(0, 1))
+        );
     }
 
     #[test]
@@ -127,11 +139,15 @@ mod tests {
             Token::new_num("1", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
-        let e = TreebuilderErr::new_not_a_sep(2);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Err(TreebuilderErr::new_not_a_sep(2))
+        );
     }
 
     #[test]
@@ -143,11 +159,15 @@ mod tests {
             Token::new_json_assignment_op(0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r =
-            array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap_err();
-        let e = TreebuilderErr::new_not_a_val(3);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Err(TreebuilderErr::new_not_a_val(3))
+        );
     }
 
     #[test]
@@ -163,10 +183,10 @@ mod tests {
         ];
         let toks_iter = &mut toks.iter().enumerate().peekable();
 
-        let r = array_consumer(toks_iter, &config).unwrap();
-        let e = Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 4));
-
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(toks_iter, &Rc::new(VarDict::new()), &config),
+            Ok(Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 4)))
+        );
         // The closing bracket should be consumed
         assert_eq!(toks_iter.next(), None);
     }
@@ -182,10 +202,15 @@ mod tests {
             Token::new_sep(",", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &config).unwrap_err();
-        let e = TreebuilderErr::new_trailing_sep(2);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &config,
+            ),
+            Err(TreebuilderErr::new_trailing_sep(2))
+        );
     }
 
     #[test]
@@ -194,7 +219,12 @@ mod tests {
             Token::new_delimiter("[", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
+        let r = array_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap();
         let e = Some(Node::new_arr(Vec::new(), 0, 2));
 
         assert_eq!(r, e);
@@ -207,7 +237,12 @@ mod tests {
             Token::new_num("123", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
+        let r = array_consumer(
+            &mut toks.iter().enumerate().peekable(),
+            &Rc::new(VarDict::new()),
+            &Config::DEFAULT,
+        )
+        .unwrap();
         let e = Some(Node::new_arr(vec![Node::new_num("123", 1, 2)], 0, 3));
 
         assert_eq!(r, e);
@@ -230,19 +265,24 @@ mod tests {
             Token::new_str("Hello, World!", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r = array_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT).unwrap();
-        let e = Some(Node::new_arr(
-            vec![
-                Node::new_arr(Vec::new(), 1, 3),
-                Node::new_bool(false, 4, 5),
-                Node::new_num("123", 6, 7),
-                Node::new_obj(HashMap::new(), 8, 10),
-                Node::new_str("Hello, World!", 11, 12),
-            ],
-            0,
-            13,
-        ));
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(
+                &mut toks.iter().enumerate().peekable(),
+                &Rc::new(VarDict::new()),
+                &Config::DEFAULT,
+            ),
+            Ok(Some(Node::new_arr(
+                vec![
+                    Node::new_arr(Vec::new(), 1, 3),
+                    Node::new_bool(false, 4, 5),
+                    Node::new_num("123", 6, 7),
+                    Node::new_obj(HashMap::new(), 8, 10).into(),
+                    Node::new_str("Hello, World!", 11, 12),
+                ],
+                0,
+                13,
+            )))
+        );
     }
 }

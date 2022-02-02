@@ -1,10 +1,10 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, rc::Rc};
 
 use crate::tokenizer::{TokenIndices, TokenType};
 
-use super::{value_consumer, Config, Node, TreebuilderErr};
+use super::{value_consumer, Config, Node, TreebuilderErr, VarDict};
 
-pub fn variable_consumer(
+pub fn variable_definition_consumer(
     inp: &mut Peekable<TokenIndices>,
     config: &Config,
 ) -> Result<Option<(String, Node)>, TreebuilderErr> {
@@ -16,7 +16,7 @@ pub fn variable_consumer(
 
     consume_assignment_op(inp)?;
 
-    let var_value = value_consumer(inp, config)?.unwrap();
+    let var_value = value_consumer(inp, &Rc::new(VarDict::new()), config)?.unwrap();
 
     Ok(Some((var_name, var_value)))
 }
@@ -61,7 +61,7 @@ fn consume_assignment_op(inp: &mut Peekable<TokenIndices>) -> Result<(), Treebui
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{tokenizer::Token, treebuilder::Node};
+    use crate::tokenizer::Token;
 
     use super::*;
 
@@ -70,7 +70,10 @@ mod tests {
         let inp = [Token::new_num("1", 0, 0)];
         let inp = &mut inp.iter().enumerate().peekable();
 
-        assert_eq!(variable_consumer(inp, &Config::DEFAULT), Ok(None));
+        assert_eq!(
+            variable_definition_consumer(inp, &Config::DEFAULT),
+            Ok(None)
+        );
 
         // The number should not be consumed, so the next consumer can look at it.
         assert_eq!(inp.next(), Some((0, &Token::new_num("1", 0, 0))));
@@ -85,7 +88,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Config::DEFAULT),
             Err(TreebuilderErr::new_not_var_name(1)),
         );
     }
@@ -100,7 +103,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Config::DEFAULT),
             Err(TreebuilderErr::new_not_equals_assignment(2)),
         );
     }
@@ -116,7 +119,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Config::DEFAULT),
             Ok(Some(("num".to_string(), Node::new_num("10", 3, 4)))),
         )
     }
@@ -133,10 +136,10 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Config::DEFAULT),
             Ok(Some((
                 "obj".to_string(),
-                Node::new_obj(HashMap::new(), 3, 5)
+                Node::new_obj(HashMap::new(), 3, 5).into()
             )))
         )
     }

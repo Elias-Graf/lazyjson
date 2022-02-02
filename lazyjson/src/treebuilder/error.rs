@@ -15,7 +15,7 @@ pub enum TreebuilderErrTyp {
     NotVariableName,
     OutOfBounds,
     TrailingSep,
-    UnknownKwd,
+    UndeclaredVariable,
     UnterminatedArr,
     UnterminatedObj,
 }
@@ -91,20 +91,20 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::UndeclaredVariable`].
+    pub fn new_undeclared_variable(i: usize) -> TreebuilderErr {
+        TreebuilderErr {
+            typ: TreebuilderErrTyp::UndeclaredVariable,
+            from: i,
+            to: i + i,
+        }
+    }
     /// Creates a new error of the typ [`TreebuilderErrTyp::OutOfBounds`].
     pub fn new_out_of_bounds() -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::OutOfBounds,
             from: usize::MAX,
             to: usize::MAX,
-        }
-    }
-    /// Creates a new error of the typ [`TreebuilderErrTyp::UnknownKwd`].
-    pub fn new_unknown_kwd(i: usize) -> TreebuilderErr {
-        TreebuilderErr {
-            typ: TreebuilderErrTyp::UnknownKwd,
-            from: i,
-            to: i + 1,
         }
     }
     /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedArr`].
@@ -149,7 +149,9 @@ fn get_verbal_hint(typ: TreebuilderErrTyp, err_tok: &Token) -> String {
         TreebuilderErrTyp::TrailingSep => {
             "expected the next value or close (trailing separator not allowed)".to_string()
         }
-        TreebuilderErrTyp::UnknownKwd => format!("received an unknown keyword `{}`", err_tok.val),
+        TreebuilderErrTyp::UndeclaredVariable => {
+            format!("undeclared variable with name: `{}`", err_tok.val).into()
+        }
         TreebuilderErrTyp::NotAKey => format!(
             "expected a `{:?}` but received a `{:?}`",
             TokenType::StringLiteral,
@@ -377,17 +379,6 @@ mod tests {
         assert_eq!(
             TreebuilderErr::new_trailing_sep(4).msg(&toks, inp),
             format!("expected the next value or close (trailing separator not allowed), line: 2, char: 14\n\n\"city\": false,}}\n             ^\n")
-        );
-    }
-
-    #[test]
-    fn unknown_kwd_msg() {
-        let inp = "nil";
-        let toks = [Token::new_kwd("nil", 0, 3)];
-
-        assert_eq!(
-            TreebuilderErr::new_unknown_kwd(0).msg(&toks, inp),
-            format!("received an unknown keyword `nil`, line: 1, char: 1\n\nnil\n^^^\n")
         );
     }
 

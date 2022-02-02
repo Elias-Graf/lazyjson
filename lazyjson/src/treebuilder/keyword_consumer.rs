@@ -1,20 +1,18 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, rc::Rc};
 
 use crate::{
     tokenizer::{TokenIndices, TokenType},
     treebuilder::error::TreebuilderErr,
 };
 
-use super::{config::Config, node::Node};
+use super::{config::Config, node::Node, var_dict::VarDict};
 
 pub fn keyword_consumer(
     toks: &mut Peekable<TokenIndices>,
+    _: &Rc<VarDict>,
     _: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
-    let (i, t) = match toks.peek() {
-        None => return Err(TreebuilderErr::new_out_of_bounds()),
-        Some(r) => *r,
-    };
+    let &(i, t) = toks.peek().unwrap();
 
     if t.typ != TokenType::KeywordLiteral {
         return Ok(None);
@@ -24,7 +22,7 @@ pub fn keyword_consumer(
         "false" => Node::new_bool(false, i, i + 1),
         "null" => Node::new_null(i, i + 1),
         "true" => Node::new_bool(true, i, i + 1),
-        _ => return Err(TreebuilderErr::new_unknown_kwd(i)),
+        _ => return Ok(None),
     };
 
     toks.next();
@@ -39,20 +37,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_input() {
-        let toks = [];
-        let r = keyword_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT)
-            .unwrap_err();
-        let e = TreebuilderErr::new_out_of_bounds();
-
-        assert_eq!(r, e);
-    }
-
-    #[test]
     pub fn non_keyword() {
         let toks = [Token::new_num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
+        let r = keyword_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
 
         assert_eq!(r, None);
         assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("123", 0, 0)));
@@ -76,7 +64,7 @@ mod tests {
     fn assert_correct_consume(tok: Token, exp: Node) {
         let toks = [tok];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
+        let r = keyword_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
         let e = Some(exp);
 
         assert_eq!(r, e);

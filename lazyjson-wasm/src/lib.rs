@@ -1,4 +1,7 @@
+use std::rc::Rc;
+
 use lazyjson::treebuilder::config::Config;
+use lazyjson::treebuilder::VarDict;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::Document;
@@ -81,6 +84,7 @@ fn parse(inp: &str) -> Result<Option<lazyjson::treebuilder::node::Node>, String>
     };
     let tree = match lazyjson::treebuilder::value_consumer::value_consumer(
         &mut toks.iter().enumerate().peekable(),
+        &Rc::new(VarDict::new()),
         &Config::DEFAULT,
     ) {
         Ok(n) => n,

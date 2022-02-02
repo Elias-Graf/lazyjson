@@ -78,8 +78,8 @@ mod tests {
         inner_2.insert(String::from("foo"), Node::new_null(0, 0));
 
         let mut outer = HashMap::new();
-        outer.insert(String::from("inner_1"), Node::new_obj(inner_1, 0, 0));
-        outer.insert(String::from("inner_2"), Node::new_obj(inner_2, 0, 0));
+        outer.insert(String::from("inner_1"), Node::new_obj(inner_1, 0, 0).into());
+        outer.insert(String::from("inner_2"), Node::new_obj(inner_2, 0, 0).into());
 
         let obj = Node::new_obj(outer, 0, 0);
 
