@@ -42,6 +42,8 @@ impl VarDict {
 
 #[cfg(test)]
 mod tests {
+    use crate::treebuilder::node::NullNode;
+
     use super::*;
 
     #[test]
@@ -58,17 +60,17 @@ mod tests {
     #[test]
     fn queries_the_parent_var_dict() {
         let mut parent_dict = VarDict::new();
-        parent_dict.insert("foo".to_string(), Node::new_null(0, 0));
+        parent_dict.insert("foo".to_string(), NullNode::new(0).into());
 
         let dict = VarDict::new_with_parent(&Rc::new(parent_dict));
 
-        assert_eq!(dict.get("foo"), Some(&Node::new_null(0, 0)));
+        assert_eq!(dict.get("foo"), Some(&NullNode::new(0).into()));
     }
 
     #[test]
     fn current_dict_overrides_parent() {
         let mut parent_dict = VarDict::new();
-        parent_dict.insert("foo".to_string(), Node::new_null(0, 0));
+        parent_dict.insert("foo".to_string(), NullNode::new(0).into());
 
         let mut dict = VarDict::new_with_parent(&Rc::new(parent_dict));
         dict.insert("foo".to_string(), Node::new_str("bar", 0, 0));

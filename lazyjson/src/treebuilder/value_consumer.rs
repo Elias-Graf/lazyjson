@@ -49,7 +49,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode},
+            node::{ArrayNode, BoolNode, NullNode},
             testing, value_consumer,
             var_dict::VarDict,
         },
@@ -141,11 +141,11 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         let mut var_dict = VarDict::new();
-        var_dict.insert("variable".into(), Node::new_null(0, 0));
+        var_dict.insert("variable".into(), NullNode::new(0).into());
 
         assert_eq!(
             value_consumer(inp, &Rc::new(var_dict), &Config::DEFAULT),
-            Ok(Some(Node::new_null(0, 0))),
+            Ok(Some(NullNode::new(0).into())),
         )
     }
 }

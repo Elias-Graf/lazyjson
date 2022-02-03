@@ -39,7 +39,16 @@ impl BoolNode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct NullSpecific {}
+pub struct NullNode {
+    pub from: usize,
+    pub to: usize,
+}
+
+impl NullNode {
+    pub fn new(i: usize) -> NullNode {
+        NullNode { from: i, to: i + 1 }
+    }
+}
 
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct NumberSpecific {
@@ -74,7 +83,7 @@ pub struct StringSpecific {
 pub enum NodeSpecific {
     Array(ArrayNode),
     Bool(BoolNode),
-    Null(NullSpecific),
+    Null(NullNode),
     Number(NumberSpecific),
     Object(ObjectSpecific),
     String(StringSpecific),
@@ -90,13 +99,6 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new_null(from: usize, to: usize) -> Node {
-        Node {
-            specific: NodeSpecific::Null(NullSpecific {}),
-            from,
-            to,
-        }
-    }
     pub fn new_num(val: &str, from: usize, to: usize) -> Node {
         Node {
             specific: NodeSpecific::Number(NumberSpecific {
@@ -150,6 +152,16 @@ impl From<BoolNode> for Node {
             from: bl.from,
             to: bl.to,
             specific: NodeSpecific::Bool(bl),
+        }
+    }
+}
+
+impl From<NullNode> for Node {
+    fn from(null: NullNode) -> Self {
+        Node {
+            from: null.from,
+            to: null.to,
+            specific: NodeSpecific::Null(null),
         }
     }
 }

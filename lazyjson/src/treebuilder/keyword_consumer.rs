@@ -7,7 +7,7 @@ use crate::{
 
 use super::{
     config::Config,
-    node::{BoolNode, Node},
+    node::{BoolNode, Node, NullNode},
     var_dict::VarDict,
 };
 
@@ -24,7 +24,7 @@ pub fn keyword_consumer(
 
     let n = match t.val.as_str() {
         "false" => BoolNode::new(i, false).into(),
-        "null" => Node::new_null(i, i + 1),
+        "null" => NullNode::new(i).into(),
         "true" => BoolNode::new(i, true).into(),
         _ => return Ok(None),
     };
@@ -60,7 +60,7 @@ mod tests {
 
     #[test]
     pub fn consume_null() {
-        assert_correct_consume(Token::new_kwd("null", 0, 0), Node::new_null(0, 1));
+        assert_correct_consume(Token::new_kwd("null", 0, 0), NullNode::new(0).into());
     }
 
     #[test]

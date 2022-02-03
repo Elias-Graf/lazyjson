@@ -62,7 +62,10 @@ fn consume_assignment_op(inp: &mut Peekable<TokenIndices>) -> Result<(), Treebui
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{tokenizer::Token, treebuilder::testing};
+    use crate::{
+        tokenizer::Token,
+        treebuilder::{node::NullNode, testing},
+    };
 
     use super::*;
 
@@ -156,11 +159,11 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut parent_var_dict = VarDict::new();
-        parent_var_dict.insert("parent_var".into(), Node::new_null(0, 0));
+        parent_var_dict.insert("parent_var".into(), NullNode::new(0).into());
 
         assert_eq!(
             variable_definition_consumer(inp, &Rc::new(parent_var_dict), &Config::DEFAULT),
-            Ok(Some(("var".into(), Node::new_null(0, 0))))
+            Ok(Some(("var".into(), NullNode::new(0).into())))
         );
     }
 }
