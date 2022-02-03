@@ -51,8 +51,20 @@ impl NullNode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct NumberSpecific {
+pub struct NumberNode {
     pub val: String,
+    pub from: usize,
+    pub to: usize,
+}
+
+impl NumberNode {
+    pub fn new(i: usize, val: String) -> NumberNode {
+        NumberNode {
+            from: i,
+            to: i + 1,
+            val,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -84,7 +96,7 @@ pub enum NodeSpecific {
     Array(ArrayNode),
     Bool(BoolNode),
     Null(NullNode),
-    Number(NumberSpecific),
+    Number(NumberNode),
     Object(ObjectSpecific),
     String(StringSpecific),
 }
@@ -99,15 +111,6 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new_num(val: &str, from: usize, to: usize) -> Node {
-        Node {
-            specific: NodeSpecific::Number(NumberSpecific {
-                val: val.to_string(),
-            }),
-            from,
-            to,
-        }
-    }
     pub fn new_obj(entries: HashMap<String, Node>, from: usize, to: usize) -> ObjectSpecific {
         let mut obj = ObjectSpecific::new(from, to);
         obj.entries = entries;
@@ -162,6 +165,16 @@ impl From<NullNode> for Node {
             from: null.from,
             to: null.to,
             specific: NodeSpecific::Null(null),
+        }
+    }
+}
+
+impl From<NumberNode> for Node {
+    fn from(num: NumberNode) -> Self {
+        Node {
+            from: num.from,
+            to: num.to,
+            specific: NodeSpecific::Number(num),
         }
     }
 }

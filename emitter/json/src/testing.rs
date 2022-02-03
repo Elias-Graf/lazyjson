@@ -1,5 +1,5 @@
 use lazyjson_core::treebuilder::{
-    node::{ArrayNode, BoolNode, NullNode},
+    node::{ArrayNode, BoolNode, NullNode, NumberNode},
     Node, VarDict,
 };
 
@@ -13,4 +13,8 @@ pub fn create_bool(val: bool) -> BoolNode {
 
 pub fn create_null() -> NullNode {
     NullNode::new(0)
+}
+
+pub fn create_num(val: &str) -> NumberNode {
+    NumberNode::new(0, val.to_owned())
 }

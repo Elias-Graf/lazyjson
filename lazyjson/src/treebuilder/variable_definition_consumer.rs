@@ -64,7 +64,10 @@ mod tests {
 
     use crate::{
         tokenizer::Token,
-        treebuilder::{node::NullNode, testing},
+        treebuilder::{
+            node::{NullNode, NumberNode},
+            testing,
+        },
     };
 
     use super::*;
@@ -124,7 +127,10 @@ mod tests {
 
         assert_eq!(
             variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(("num".to_string(), Node::new_num("10", 3, 4)))),
+            Ok(Some((
+                "num".to_string(),
+                NumberNode::new(3, "10".to_owned()).into()
+            ))),
         )
     }
 

@@ -2,7 +2,12 @@ use std::{iter::Peekable, rc::Rc};
 
 use crate::tokenizer::{TokenIndices, TokenType};
 
-use super::{config::Config, error::TreebuilderErr, node::Node, var_dict::VarDict};
+use super::{
+    config::Config,
+    error::TreebuilderErr,
+    node::{Node, NumberNode},
+    var_dict::VarDict,
+};
 
 pub fn number_consumer(
     toks: &mut Peekable<TokenIndices>,
@@ -17,5 +22,5 @@ pub fn number_consumer(
         },
     };
 
-    Ok(Some(Node::new_num(&t.val, i, i + 1)))
+    Ok(Some(NumberNode::new(i, t.val.clone()).into()))
 }

@@ -145,7 +145,7 @@ fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderEr
 mod tests {
     use crate::{
         tokenizer::Token,
-        treebuilder::node::{ArrayNode, BoolNode, ObjectSpecific},
+        treebuilder::node::{ArrayNode, BoolNode, NumberNode, ObjectSpecific},
     };
 
     use super::*;
@@ -375,7 +375,10 @@ mod tests {
             ArrayNode::new(3, 5, Vec::new(), VarDict::new()).into(),
         );
         exp_entries.insert("key_kwd".to_string(), BoolNode::new(8, false).into());
-        exp_entries.insert("key_num".to_string(), Node::new_num("123", 12, 13));
+        exp_entries.insert(
+            "key_num".to_string(),
+            NumberNode::new(12, "123".to_owned()).into(),
+        );
         exp_entries.insert(
             "key_obj".to_string(),
             Node::new_obj(HashMap::new(), 16, 18).into(),
@@ -450,7 +453,7 @@ mod tests {
         exp_obj.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
         exp_obj
             .var_dict
-            .insert("num".into(), Node::new_num("10", 4, 5));
+            .insert("num".into(), NumberNode::new(4, "10".to_owned()).into());
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -470,13 +473,13 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         let mut var_dict = VarDict::new();
-        var_dict.insert("bar".into(), Node::new_num("5", 0, 0));
+        var_dict.insert("bar".into(), NumberNode::new(0, "5".to_owned()).into());
         let var_dict = Rc::new(var_dict);
 
         let mut exp_obj = ObjectSpecific::new(0, 5);
         exp_obj
             .entries
-            .insert("foo".into(), Node::new_num("5", 0, 0));
+            .insert("foo".into(), NumberNode::new(0, "5".to_owned()).into());
         exp_obj.var_dict = VarDict::new_with_parent(&var_dict);
 
         assert_eq!(

@@ -121,7 +121,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode},
+            node::{ArrayNode, BoolNode, NumberNode},
             testing::{self, inp_from},
             Config,
         },
@@ -208,7 +208,12 @@ mod tests {
         let inp = &mut toks.iter().enumerate().peekable();
 
         let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArrayNode::new(0, 4, vec![Node::new_num("123", 1, 2)], exp_var_dict);
+        let exp_arr = ArrayNode::new(
+            0,
+            4,
+            vec![NumberNode::new(1, "123".to_owned()).into()],
+            exp_var_dict,
+        );
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -266,7 +271,12 @@ mod tests {
         let inp = &mut inp_from(&toks);
 
         let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArrayNode::new(0, 3, vec![Node::new_num("123", 1, 2)], exp_var_dict);
+        let exp_arr = ArrayNode::new(
+            0,
+            3,
+            vec![NumberNode::new(1, "123".to_owned()).into()],
+            exp_var_dict,
+        );
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -300,7 +310,7 @@ mod tests {
             vec![
                 ArrayNode::new(1, 3, Vec::new(), VarDict::new()).into(),
                 BoolNode::new(4, false).into(),
-                Node::new_num("123", 6, 7),
+                NumberNode::new(6, "123".to_owned()).into(),
                 Node::new_obj(HashMap::new(), 8, 10).into(),
                 Node::new_str("Hello, World!", 11, 12),
             ],
@@ -378,13 +388,13 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut var_dict = VarDict::new();
-        var_dict.insert("foo".into(), Node::new_num("10", 0, 0));
+        var_dict.insert("foo".into(), NumberNode::new(0, "10".to_owned()).into());
         let var_dict = &Rc::new(var_dict);
 
         let exp_arr = ArrayNode::new(
             0,
             3,
-            vec![Node::new_num("10", 0, 0)],
+            vec![NumberNode::new(0, "10".to_owned()).into()],
             VarDict::new_with_parent(var_dict),
         );
 

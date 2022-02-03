@@ -37,18 +37,21 @@ impl EmitJson for ArrayNode {
 mod tests {
     use lazyjson_core::treebuilder::Node;
 
-    use crate::{testing, EmitJson};
+    use crate::{
+        testing::{create_arr, create_bool, create_null, create_num},
+        EmitJson,
+    };
 
     #[test]
     fn array_specific_empty() {
-        let arr: Node = testing::create_arr(Vec::new()).into();
+        let arr: Node = create_arr(Vec::new()).into();
 
         assert_eq!(arr.emit_json(0), "[]");
     }
 
     #[test]
     fn array_specific_not_empty() {
-        let arr = testing::create_arr(vec![Node::new_num("0", 0, 0), Node::new_str("foo", 0, 0)]);
+        let arr = create_arr(vec![create_num("0").into(), Node::new_str("foo", 0, 0)]);
 
         assert_eq!(
             arr.emit_json(0),
@@ -61,9 +64,9 @@ mod tests {
 
     #[test]
     fn array_specific_nested() {
-        let arr: Node = testing::create_arr(vec![
-            testing::create_arr(vec![testing::create_bool(false).into()]).into(),
-            testing::create_arr(vec![testing::create_null().into()]).into(),
+        let arr: Node = create_arr(vec![
+            create_arr(vec![create_bool(false).into()]).into(),
+            create_arr(vec![create_null().into()]).into(),
         ])
         .into();
 
