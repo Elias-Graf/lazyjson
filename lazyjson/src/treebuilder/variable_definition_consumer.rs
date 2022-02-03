@@ -6,6 +6,7 @@ use super::{value_consumer, Config, Node, TreebuilderErr, VarDict};
 
 pub fn variable_definition_consumer(
     inp: &mut Peekable<TokenIndices>,
+    parent_var_dict: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<(String, Node)>, TreebuilderErr> {
     if !consume_var_kwd(inp) {
@@ -16,7 +17,7 @@ pub fn variable_definition_consumer(
 
     consume_assignment_op(inp)?;
 
-    let var_value = value_consumer(inp, &Rc::new(VarDict::new()), config)?.unwrap();
+    let var_value = value_consumer(inp, parent_var_dict, config)?.unwrap();
 
     Ok(Some((var_name, var_value)))
 }
@@ -61,7 +62,7 @@ fn consume_assignment_op(inp: &mut Peekable<TokenIndices>) -> Result<(), Treebui
 mod tests {
     use std::collections::HashMap;
 
-    use crate::tokenizer::Token;
+    use crate::{tokenizer::Token, treebuilder::testing};
 
     use super::*;
 
@@ -71,7 +72,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_definition_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(None)
         );
 
@@ -88,7 +89,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_definition_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Err(TreebuilderErr::new_not_var_name(1)),
         );
     }
@@ -103,7 +104,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_definition_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Err(TreebuilderErr::new_not_equals_assignment(2)),
         );
     }
@@ -119,7 +120,7 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_definition_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(("num".to_string(), Node::new_num("10", 3, 4)))),
         )
     }
@@ -136,11 +137,30 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         assert_eq!(
-            variable_definition_consumer(inp, &Config::DEFAULT),
+            variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some((
                 "obj".to_string(),
                 Node::new_obj(HashMap::new(), 3, 5).into()
             )))
         )
+    }
+
+    #[test]
+    fn can_use_variable_from_parent_var_dict() {
+        let toks = [
+            Token::new_kwd("let", 0, 0),
+            Token::new_kwd("var", 0, 0),
+            Token::new_equal_assignment_op(0),
+            Token::new_kwd("parent_var", 0, 0),
+        ];
+        let inp = &mut testing::inp_from(&toks);
+
+        let mut parent_var_dict = VarDict::new();
+        parent_var_dict.insert("parent_var".into(), Node::new_null(0, 0));
+
+        assert_eq!(
+            variable_definition_consumer(inp, &Rc::new(parent_var_dict), &Config::DEFAULT),
+            Ok(Some(("var".into(), Node::new_null(0, 0))))
+        );
     }
 }

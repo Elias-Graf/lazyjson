@@ -108,11 +108,11 @@ impl TreebuilderErr {
         }
     }
     /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedArr`].
-    pub fn new_unterminated_arr(from: usize, to: usize) -> TreebuilderErr {
+    pub fn new_unterminated_arr(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UnterminatedArr,
-            from,
-            to,
+            from: i,
+            to: i + 1,
         }
     }
     /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedObj`].
@@ -391,8 +391,8 @@ mod tests {
         ];
 
         assert_eq!(
-            TreebuilderErr::new_unterminated_arr(0, 2).msg(&toks, inp),
-            "array was not terminated, line: 1, char: 1\n\n[false\n^^^^^^\n"
+            TreebuilderErr::new_unterminated_arr(0).msg(&toks, inp),
+            "array was not terminated, line: 1, char: 1\n\n[false\n^\n"
         );
     }
 

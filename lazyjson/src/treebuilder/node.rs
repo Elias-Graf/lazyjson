@@ -5,6 +5,20 @@ use super::var_dict::VarDict;
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ArraySpecific {
     pub entries: Vec<Node>,
+    pub var_dict: VarDict,
+    from: usize,
+    to: usize,
+}
+
+impl ArraySpecific {
+    pub fn new(from: usize, to: usize, entries: Vec<Node>, var_dict: VarDict) -> ArraySpecific {
+        ArraySpecific {
+            entries,
+            var_dict,
+            from,
+            to,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -66,7 +80,12 @@ pub struct Node {
 impl Node {
     pub fn new_arr(entries: Vec<Node>, from: usize, to: usize) -> Node {
         Node {
-            specific: NodeSpecific::Array(ArraySpecific { entries }),
+            specific: NodeSpecific::Array(ArraySpecific {
+                entries,
+                from,
+                to,
+                var_dict: VarDict::new(),
+            }),
             from,
             to,
         }
@@ -122,12 +141,22 @@ impl Node {
     }
 }
 
-impl From<ObjectSpecific> for Node {
-    fn from(object: ObjectSpecific) -> Self {
+impl From<ArraySpecific> for Node {
+    fn from(arr: ArraySpecific) -> Self {
         Node {
-            from: object.from,
-            to: object.to,
-            specific: NodeSpecific::Object(object),
+            from: arr.from,
+            to: arr.to,
+            specific: NodeSpecific::Array(arr),
+        }
+    }
+}
+
+impl From<ObjectSpecific> for Node {
+    fn from(obj: ObjectSpecific) -> Self {
+        Node {
+            from: obj.from,
+            to: obj.to,
+            specific: NodeSpecific::Object(obj),
         }
     }
 }

@@ -21,6 +21,9 @@ pub use string_consumer::string_consumer;
 pub use value_consumer::value_consumer;
 pub use var_dict::VarDict;
 
+#[cfg(test)]
+mod testing;
+
 mod variable_definition_consumer;
 mod variable_usage_consumer;
 
@@ -30,7 +33,11 @@ mod tests {
 
     use crate::{
         tokenizer::Token,
-        treebuilder::{node::ObjectSpecific, value_consumer::value_consumer, var_dict::VarDict},
+        treebuilder::{
+            node::{ArraySpecific, ObjectSpecific},
+            value_consumer::value_consumer,
+            var_dict::VarDict,
+        },
     };
 
     use super::*;
@@ -82,7 +89,8 @@ mod tests {
             .entries
             .insert("searchable".to_string(), Node::new_bool(true, 12, 13));
 
-        downtown.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
+        downtown.var_dict =
+            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new()))));
 
         let mut uptown = ObjectSpecific::new(15, 28);
         uptown
@@ -95,7 +103,8 @@ mod tests {
             .entries
             .insert("searchable".to_string(), Node::new_bool(false, 26, 27));
 
-        uptown.var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
+        uptown.var_dict =
+            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new()))));
 
         assert_eq!(
             value_consumer(
@@ -103,11 +112,15 @@ mod tests {
                 &Rc::new(VarDict::new()),
                 &Config::DEFAULT,
             ),
-            Ok(Some(Node::new_arr(
-                vec![downtown.into(), uptown.into(), Node::new_null(29, 30),],
-                0,
-                31,
-            )))
+            Ok(Some(
+                ArraySpecific::new(
+                    0,
+                    31,
+                    vec![downtown.into(), uptown.into(), Node::new_null(29, 30)],
+                    VarDict::new_with_parent(&Rc::new(VarDict::new())),
+                )
+                .into(),
+            ))
         );
     }
 }

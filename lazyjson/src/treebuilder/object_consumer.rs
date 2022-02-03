@@ -7,7 +7,7 @@ use super::{
     variable_definition_consumer::variable_definition_consumer,
 };
 use crate::tokenizer::{Token, TokenIndices, TokenType};
-use std::{cell::RefCell, collections::HashMap, iter::Peekable, rc::Rc};
+use std::{collections::HashMap, iter::Peekable, rc::Rc};
 
 pub fn object_consumer(
     inp: &mut Peekable<TokenIndices>,
@@ -20,7 +20,7 @@ pub fn object_consumer(
     };
 
     let mut entries = HashMap::new();
-    let var_dict = RefCell::new(VarDict::new_with_parent(var_dict));
+    let mut var_dict = VarDict::new_with_parent(var_dict);
 
     // Check if the object is immediately closed again.
     if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
@@ -28,8 +28,11 @@ pub fn object_consumer(
     }
 
     loop {
-        if let Some((var_key, var_val)) = variable_definition_consumer(inp, config)? {
-            var_dict.borrow_mut().insert(var_key, var_val);
+        if let Some((var_key, var_val)) =
+            // TODO: figure out how to do this without cloning
+            variable_definition_consumer(inp, &Rc::new(var_dict.clone()), config)?
+        {
+            var_dict.insert(var_key, var_val);
         } else {
             let (key_i, key) = consume_key(inp)?;
 
@@ -37,7 +40,8 @@ pub fn object_consumer(
 
             let val = match value_consumer(
                 inp,
-                &Rc::new(var_dict.borrow().to_owned()),
+                // TODO: figure out how to do this without cloning
+                &Rc::new(var_dict.clone()),
                 &Config::DEFAULT,
             )? {
                 None => return Err(TreebuilderErr::new_not_a_val(inp.next().unwrap().0)),
@@ -49,7 +53,7 @@ pub fn object_consumer(
         if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
             let mut obj = ObjectSpecific::new(opn_i, cls_i + 1);
             obj.entries = entries;
-            obj.var_dict = var_dict.borrow().to_owned();
+            obj.var_dict = var_dict;
 
             return Ok(Some(obj.into()));
         }
@@ -61,7 +65,7 @@ pub fn object_consumer(
         if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
             let mut obj = ObjectSpecific::new(opn_i, cls_i + 1);
             obj.entries = entries;
-            obj.var_dict = var_dict.borrow().to_owned();
+            obj.var_dict = var_dict;
 
             if config.allow_trailing_commas {
                 return Ok(Some(obj.into()));
@@ -125,7 +129,7 @@ fn consume_assignment(
     Ok(())
 }
 
-fn consume_val_sep<'a>(inp: &'a mut Peekable<TokenIndices>) -> Result<(), TreebuilderErr> {
+fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderErr> {
     let &(i, t) = inp.peek().unwrap();
 
     if t.typ != TokenType::Separator || t.val != "," {
