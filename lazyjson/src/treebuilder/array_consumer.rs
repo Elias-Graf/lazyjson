@@ -121,7 +121,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NumberNode},
+            node::{ArrayNode, BoolNode, NumberNode, ObjectNode},
             testing::{self, inp_from},
             Config,
         },
@@ -303,24 +303,34 @@ mod tests {
         ];
         let inp = &mut testing::inp_from(&toks);
 
-        let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArrayNode::new(
-            0,
-            13,
-            vec![
-                ArrayNode::new(1, 3, Vec::new(), VarDict::new()).into(),
-                BoolNode::new(4, false).into(),
-                NumberNode::new(6, "123".to_owned()).into(),
-                Node::new_obj(HashMap::new(), 8, 10).into(),
-                Node::new_str("Hello, World!", 11, 12),
-            ],
-            exp_var_dict,
-        );
+        let a = array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT);
+        let b = Ok(Some(
+            ArrayNode::new(
+                0,
+                13,
+                vec![
+                    ArrayNode::new(1, 3, Vec::new(), VarDict::new()).into(),
+                    BoolNode::new(4, false).into(),
+                    NumberNode::new(6, "123".to_owned()).into(),
+                    ObjectNode::new(
+                        8,
+                        10,
+                        HashMap::new(),
+                        VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(
+                            VarDict::new(),
+                        )))),
+                    )
+                    .into(),
+                    Node::new_str("Hello, World!", 11, 12),
+                ],
+                VarDict::new_with_parent(&Rc::new(VarDict::new())),
+            )
+            .into(),
+        ));
 
-        assert_eq!(
-            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(exp_arr.into()))
-        );
+        dbg!(&a, &b);
+
+        assert_eq!(a, b);
     }
 
     #[test]

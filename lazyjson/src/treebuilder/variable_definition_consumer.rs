@@ -65,7 +65,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{NullNode, NumberNode},
+            node::{NullNode, NumberNode, ObjectNode},
             testing,
         },
     };
@@ -149,7 +149,13 @@ mod tests {
             variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some((
                 "obj".to_string(),
-                Node::new_obj(HashMap::new(), 3, 5).into()
+                ObjectNode::new(
+                    3,
+                    5,
+                    HashMap::new(),
+                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
+                )
+                .into()
             )))
         )
     }

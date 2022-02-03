@@ -68,20 +68,25 @@ impl NumberNode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct ObjectSpecific {
+pub struct ObjectNode {
     pub entries: HashMap<String, Node>,
     pub var_dict: VarDict,
     from: usize,
     to: usize,
 }
 
-impl ObjectSpecific {
-    pub fn new(from: usize, to: usize) -> ObjectSpecific {
-        ObjectSpecific {
+impl ObjectNode {
+    pub fn new(
+        from: usize,
+        to: usize,
+        entries: HashMap<String, Node>,
+        var_dict: VarDict,
+    ) -> ObjectNode {
+        ObjectNode {
             from,
             to,
-            entries: HashMap::new(),
-            var_dict: VarDict::new(),
+            entries,
+            var_dict,
         }
     }
 }
@@ -97,7 +102,7 @@ pub enum NodeSpecific {
     Bool(BoolNode),
     Null(NullNode),
     Number(NumberNode),
-    Object(ObjectSpecific),
+    Object(ObjectNode),
     String(StringSpecific),
 }
 
@@ -111,12 +116,6 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new_obj(entries: HashMap<String, Node>, from: usize, to: usize) -> ObjectSpecific {
-        let mut obj = ObjectSpecific::new(from, to);
-        obj.entries = entries;
-
-        obj
-    }
     pub fn new_str(val: &str, from: usize, to: usize) -> Node {
         Node {
             specific: NodeSpecific::String(StringSpecific {
@@ -179,8 +178,8 @@ impl From<NumberNode> for Node {
     }
 }
 
-impl From<ObjectSpecific> for Node {
-    fn from(obj: ObjectSpecific) -> Self {
+impl From<ObjectNode> for Node {
+    fn from(obj: ObjectNode) -> Self {
         Node {
             from: obj.from,
             to: obj.to,

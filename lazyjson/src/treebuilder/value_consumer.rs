@@ -49,7 +49,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NullNode, NumberNode},
+            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode},
             testing, value_consumer,
             var_dict::VarDict,
         },
@@ -104,16 +104,20 @@ mod tests {
             Token::new_delimiter("{", 0, 0),
             Token::new_delimiter("}", 0, 0),
         ];
+        let inp = &mut testing::inp_from(&toks);
 
-        let r = value_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap();
-        let e = Some(Node::new_obj(HashMap::new(), 0, 2).into());
-
-        assert_eq!(r, e);
+        assert_eq!(
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            Ok(Some(
+                ObjectNode::new(
+                    0,
+                    2,
+                    HashMap::new(),
+                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
+                )
+                .into()
+            ))
+        );
     }
 
     #[test]

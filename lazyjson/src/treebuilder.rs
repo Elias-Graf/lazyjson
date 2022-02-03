@@ -29,12 +29,12 @@ mod variable_usage_consumer;
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
+    use std::{collections::HashMap, rc::Rc};
 
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectSpecific},
+            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode},
             value_consumer::value_consumer,
             var_dict::VarDict,
         },
@@ -78,35 +78,35 @@ mod tests {
             Token::new_delimiter("]", 0, 0),
         ];
 
-        let mut downtown = ObjectSpecific::new(1, 14);
-        downtown
-            .entries
-            .insert("name".to_string(), Node::new_str("Downtown", 4, 5));
-        downtown.entries.insert(
+        let mut downtown_entries = HashMap::new();
+        downtown_entries.insert("name".to_string(), Node::new_str("Downtown", 4, 5));
+        downtown_entries.insert(
             "code".to_string(),
             NumberNode::new(8, "123".to_owned()).into(),
         );
-        downtown
-            .entries
-            .insert("searchable".to_string(), BoolNode::new(12, true).into());
+        downtown_entries.insert("searchable".to_string(), BoolNode::new(12, true).into());
 
-        downtown.var_dict =
-            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new()))));
+        let downtown = ObjectNode::new(
+            1,
+            14,
+            downtown_entries,
+            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new())))),
+        );
 
-        let mut uptown = ObjectSpecific::new(15, 28);
-        uptown
-            .entries
-            .insert("name".to_string(), Node::new_str("Uptown", 18, 19));
-        uptown.entries.insert(
+        let mut uptown_entries = HashMap::new();
+        uptown_entries.insert("name".to_string(), Node::new_str("Uptown", 18, 19));
+        uptown_entries.insert(
             "code".to_string(),
             NumberNode::new(22, "456".to_owned()).into(),
         );
-        uptown
-            .entries
-            .insert("searchable".to_string(), BoolNode::new(26, false).into());
+        uptown_entries.insert("searchable".to_string(), BoolNode::new(26, false).into());
 
-        uptown.var_dict =
-            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new()))));
+        let uptown = ObjectNode::new(
+            15,
+            28,
+            uptown_entries,
+            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new())))),
+        );
 
         assert_eq!(
             value_consumer(
