@@ -67,9 +67,7 @@ mod tests {
 
         assert_eq!(
             value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(
-                ArrayNode::new(0, 2, Vec::new()).into()
-            )),
+            Ok(Some(ArrayNode::new(0, 2, Vec::new()).into())),
         );
     }
 
@@ -108,15 +106,7 @@ mod tests {
 
         assert_eq!(
             value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
-            Ok(Some(
-                ObjectNode::new(
-                    0,
-                    2,
-                    HashMap::new(),
-                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
-                )
-                .into()
-            ))
+            Ok(Some(ObjectNode::new(0, 2, HashMap::new(),).into()))
         );
     }
 

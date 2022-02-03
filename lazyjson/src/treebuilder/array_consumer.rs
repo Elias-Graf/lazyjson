@@ -294,15 +294,7 @@ mod tests {
                     ArrayNode::new(1, 3, Vec::new()).into(),
                     BoolNode::new(4, false).into(),
                     NumberNode::new(6, "123".to_owned()).into(),
-                    ObjectNode::new(
-                        8,
-                        10,
-                        HashMap::new(),
-                        VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(
-                            VarDict::new(),
-                        )))),
-                    )
-                    .into(),
+                    ObjectNode::new(8, 10, HashMap::new()).into(),
                     StringNode::new(11, "Hello, World!".to_owned()).into(),
                 ],
             )

@@ -149,13 +149,7 @@ mod tests {
             variable_definition_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some((
                 "obj".to_string(),
-                ObjectNode::new(
-                    3,
-                    5,
-                    HashMap::new(),
-                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
-                )
-                .into()
+                ObjectNode::new(3, 5, HashMap::new(),).into()
             )))
         )
     }

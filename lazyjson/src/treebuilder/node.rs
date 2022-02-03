@@ -1,7 +1,5 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use super::var_dict::VarDict;
-
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ArrayNode {
     pub entries: Vec<Node>,
@@ -11,11 +9,7 @@ pub struct ArrayNode {
 
 impl ArrayNode {
     pub fn new(from: usize, to: usize, entries: Vec<Node>) -> ArrayNode {
-        ArrayNode {
-            entries,
-            from,
-            to,
-        }
+        ArrayNode { entries, from, to }
     }
 }
 
@@ -68,24 +62,13 @@ impl NumberNode {
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ObjectNode {
     pub entries: HashMap<String, Node>,
-    pub var_dict: VarDict,
-    from: usize,
-    to: usize,
+    pub from: usize,
+    pub to: usize,
 }
 
 impl ObjectNode {
-    pub fn new(
-        from: usize,
-        to: usize,
-        entries: HashMap<String, Node>,
-        var_dict: VarDict,
-    ) -> ObjectNode {
-        ObjectNode {
-            from,
-            to,
-            entries,
-            var_dict,
-        }
+    pub fn new(from: usize, to: usize, entries: HashMap<String, Node>) -> ObjectNode {
+        ObjectNode { from, to, entries }
     }
 }
 

@@ -88,12 +88,7 @@ mod tests {
         );
         downtown_entries.insert("searchable".to_string(), BoolNode::new(12, true).into());
 
-        let downtown = ObjectNode::new(
-            1,
-            14,
-            downtown_entries,
-            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new())))),
-        );
+        let downtown = ObjectNode::new(1, 14, downtown_entries);
 
         let mut uptown_entries = HashMap::new();
         uptown_entries.insert(
@@ -106,12 +101,7 @@ mod tests {
         );
         uptown_entries.insert("searchable".to_string(), BoolNode::new(26, false).into());
 
-        let uptown = ObjectNode::new(
-            15,
-            28,
-            uptown_entries,
-            VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new())))),
-        );
+        let uptown = ObjectNode::new(15, 28, uptown_entries);
 
         assert_eq!(
             value_consumer(

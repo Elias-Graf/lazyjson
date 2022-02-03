@@ -24,9 +24,7 @@ pub fn object_consumer(
 
     // Check if the object is immediately closed again (empty).
     if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
-        return Ok(Some(
-            ObjectNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
-        ));
+        return Ok(Some(ObjectNode::new(opn_i, cls_i + 1, entries).into()));
     }
 
     loop {
@@ -53,9 +51,7 @@ pub fn object_consumer(
         }
 
         if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
-            return Ok(Some(
-                ObjectNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
-            ));
+            return Ok(Some(ObjectNode::new(opn_i, cls_i + 1, entries).into()));
         }
 
         consume_val_sep(inp)?;
@@ -67,9 +63,7 @@ pub fn object_consumer(
                 return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
             }
 
-            return Ok(Some(
-                ObjectNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
-            ));
+            return Ok(Some(ObjectNode::new(opn_i, cls_i + 1, entries).into()));
         }
     }
 }
@@ -145,7 +139,10 @@ mod tests {
         tokenizer::Token,
         treebuilder::{
             node::{ArrayNode, BoolNode, NumberNode, StringNode},
-            testing,
+            testing::{
+                self, new_delimiter, new_equal_assignment_op, new_json_assignment_op, new_kwd,
+                new_num, new_sep, new_str,
+            },
         },
     };
 
@@ -239,15 +236,7 @@ mod tests {
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &config),
-            Ok(Some(
-                ObjectNode::new(
-                    0,
-                    6,
-                    exp_entries,
-                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
-                )
-                .into()
-            ))
+            Ok(Some(ObjectNode::new(0, 6, exp_entries).into()))
         );
         // It should consume the closing brace
         assert_eq!(inp.next(), None);
@@ -315,15 +304,7 @@ mod tests {
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
-            Ok(Some(
-                ObjectNode::new(
-                    0,
-                    2,
-                    HashMap::new(),
-                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
-                )
-                .into(),
-            ))
+            Ok(Some(ObjectNode::new(0, 2, HashMap::new(),).into(),))
         );
     }
 
@@ -349,15 +330,7 @@ mod tests {
                 &Rc::new(VarDict::new()),
                 &Config::DEFAULT,
             ),
-            Ok(Some(
-                ObjectNode::new(
-                    0,
-                    5,
-                    exp_entries,
-                    VarDict::new_with_parent(&Rc::new(VarDict::new()))
-                )
-                .into()
-            ))
+            Ok(Some(ObjectNode::new(0, 5, exp_entries).into()))
         );
     }
 
@@ -391,10 +364,7 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut exp_entries = HashMap::new();
-        exp_entries.insert(
-            "key_arr".into(),
-            ArrayNode::new(3, 5, Vec::new()).into(),
-        );
+        exp_entries.insert("key_arr".into(), ArrayNode::new(3, 5, Vec::new()).into());
         exp_entries.insert("key_kwd".to_string(), BoolNode::new(8, false).into());
         exp_entries.insert(
             "key_num".to_string(),
@@ -402,15 +372,7 @@ mod tests {
         );
         exp_entries.insert(
             "key_obj".to_string(),
-            ObjectNode::new(
-                16,
-                18,
-                HashMap::new(),
-                VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(
-                    VarDict::new(),
-                )))),
-            )
-            .into(),
+            ObjectNode::new(16, 18, HashMap::new()).into(),
         );
         exp_entries.insert(
             "key_str".to_string(),
@@ -419,15 +381,7 @@ mod tests {
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(
-                ObjectNode::new(
-                    0,
-                    23,
-                    exp_entries,
-                    VarDict::new_with_parent(&Rc::new(VarDict::new())),
-                )
-                .into(),
-            ))
+            Ok(Some(ObjectNode::new(0, 23, exp_entries,).into(),))
         );
     }
 
@@ -455,64 +409,61 @@ mod tests {
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(
-                ObjectNode::new(0, 10, exp_entries, exp_var_dict,).into()
-            ))
+            Ok(Some(ObjectNode::new(0, 10, exp_entries,).into()))
         )
     }
 
     #[test]
-    fn declare_variable_with_trailing_sep() {
-        let mut config = Config::DEFAULT;
-        config.allow_trailing_commas = true;
-
+    pub fn declare_and_use_variable() {
         let inp = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_kwd("let", 0, 0),
-            Token::new_kwd("num", 0, 0),
-            Token::new_equal_assignment_op(0),
-            Token::new_num("10", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("}", 0, 0),
+            new_delimiter("{"),
+            new_kwd("let"),
+            new_kwd("var"),
+            new_equal_assignment_op(),
+            new_num("10"),
+            new_sep(","),
+            new_str("num"),
+            new_json_assignment_op(),
+            new_kwd("var"),
+            new_delimiter("}"),
         ];
         let inp = &mut inp.iter().enumerate().peekable();
 
-        let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("num".into(), NumberNode::new(4, "10".to_owned()).into());
+        let mut exp_entries = HashMap::new();
+        exp_entries.insert("num".to_owned(), NumberNode::new(4, "10".to_owned()).into());
 
         assert_eq!(
-            object_consumer(inp, &Rc::new(VarDict::new()), &config),
-            Ok(Some(
-                ObjectNode::new(0, 7, HashMap::new(), exp_var_dict).into()
-            ))
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(ObjectNode::new(0, 10, exp_entries).into()))
         );
     }
 
     #[test]
-    fn use_variable() {
+    pub fn declare_and_use_variable_with_trailing_sep() {
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = true;
+
         let inp = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("foo", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_kwd("bar", 0, 0),
-            Token::new_delimiter("}", 0, 0),
+            new_delimiter("{"),
+            new_kwd("let"),
+            new_kwd("var"),
+            new_equal_assignment_op(),
+            new_num("10"),
+            new_sep(","),
+            new_str("num"),
+            new_json_assignment_op(),
+            new_kwd("var"),
+            new_sep(","),
+            new_delimiter("}"),
         ];
         let inp = &mut inp.iter().enumerate().peekable();
 
-        let mut var_dict = VarDict::new();
-        var_dict.insert("bar".into(), NumberNode::new(0, "5".to_owned()).into());
-        let var_dict = Rc::new(var_dict);
-
         let mut exp_entries = HashMap::new();
-        exp_entries.insert("foo".into(), NumberNode::new(0, "5".to_owned()).into());
-
-        let exp_var_dict = VarDict::new_with_parent(&var_dict);
+        exp_entries.insert("num".to_owned(), NumberNode::new(4, "10".to_owned()).into());
 
         assert_eq!(
-            object_consumer(inp, &var_dict, &Config::DEFAULT),
-            Ok(Some(
-                ObjectNode::new(0, 5, exp_entries, exp_var_dict).into()
-            ))
+            object_consumer(inp, &Rc::new(VarDict::new()), &config),
+            Ok(Some(ObjectNode::new(0, 11, exp_entries).into()))
         );
     }
 }
