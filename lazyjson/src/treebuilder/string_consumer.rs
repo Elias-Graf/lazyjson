@@ -29,7 +29,7 @@ pub fn string_consumer(
 mod tests {
     use crate::{
         tokenizer::Token,
-        treebuilder::{error::TreebuilderErr, node::Node, testing, var_dict::VarDict, Config},
+        treebuilder::{error::TreebuilderErr, testing, var_dict::VarDict, Config},
     };
 
     use super::*;

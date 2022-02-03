@@ -28,7 +28,7 @@ pub fn variable_usage_consumer(
 mod tests {
     use crate::{
         tokenizer::Token,
-        treebuilder::{node::BoolNode, var_dict::VarDict, Node, TreebuilderErr},
+        treebuilder::{node::BoolNode, var_dict::VarDict, TreebuilderErr},
     };
 
     use super::*;

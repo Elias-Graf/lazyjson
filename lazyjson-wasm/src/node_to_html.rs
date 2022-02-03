@@ -1,4 +1,4 @@
-use lazyjson::treebuilder::node::{Node, NodeSpecific};
+use lazyjson::treebuilder::node::Node;
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{Document, HtmlSpanElement};
 
@@ -29,13 +29,13 @@ impl ToHtml for Node {
 
 fn get_nam_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
     let elm = doc.create_element("span")?.dyn_into::<HtmlSpanElement>()?;
-    let name = match node.specific {
-        NodeSpecific::Array(_) => "array",
-        NodeSpecific::Bool(_) => "bool",
-        NodeSpecific::Null(_) => "null",
-        NodeSpecific::Number(_) => "number",
-        NodeSpecific::Object(_) => "object",
-        NodeSpecific::String(_) => "string",
+    let name = match node {
+        Node::Array(_) => "array",
+        Node::Bool(_) => "bool",
+        Node::Null(_) => "null",
+        Node::Number(_) => "number",
+        Node::Object(_) => "object",
+        Node::String(_) => "string",
     };
 
     elm.set_class_name("name");
@@ -45,12 +45,12 @@ fn get_nam_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> 
 }
 
 fn get_val_elm(node: &Node, doc: &Document) -> Result<HtmlSpanElement, JsValue> {
-    match &node.specific {
-        NodeSpecific::Array(a) => a.to_html(doc),
-        NodeSpecific::Bool(b) => b.to_html(doc),
-        NodeSpecific::Null(n) => n.to_html(doc),
-        NodeSpecific::Number(n) => n.to_html(doc),
-        NodeSpecific::Object(o) => o.to_html(doc),
-        NodeSpecific::String(s) => s.to_html(doc),
+    match &node {
+        Node::Array(a) => a.to_html(doc),
+        Node::Bool(b) => b.to_html(doc),
+        Node::Null(n) => n.to_html(doc),
+        Node::Number(n) => n.to_html(doc),
+        Node::Object(o) => o.to_html(doc),
+        Node::String(s) => s.to_html(doc),
     }
 }

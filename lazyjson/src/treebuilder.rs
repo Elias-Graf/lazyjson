@@ -14,7 +14,6 @@ pub use config::Config;
 pub use error::TreebuilderErr;
 pub use keyword_consumer::keyword_consumer;
 pub use node::Node;
-pub use node::NodeSpecific;
 pub use number_consumer::number_consumer;
 pub use object_consumer::object_consumer;
 pub use string_consumer::string_consumer;

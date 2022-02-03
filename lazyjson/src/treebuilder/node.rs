@@ -109,7 +109,7 @@ impl StringNode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub enum NodeSpecific {
+pub enum Node {
     Array(ArrayNode),
     Bool(BoolNode),
     Null(NullNode),
@@ -118,84 +118,65 @@ pub enum NodeSpecific {
     String(StringNode),
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct Node {
-    pub specific: NodeSpecific,
-    #[deprecated(note = "use the method `from()` instead")]
-    pub from: usize,
-    #[deprecated(note = "use the method `to()` instead")]
-    pub to: usize,
-}
-
 impl Node {
     /// Returns the index of the starting token that was used to create this node.
     /// **The index is inclusive.**
     pub fn from(&self) -> usize {
-        self.from
+        match &self {
+            Node::Array(a) => a.from,
+            Node::Bool(b) => b.from,
+            Node::Null(n) => n.from,
+            Node::Number(n) => n.from,
+            Node::Object(o) => o.from,
+            Node::String(s) => s.from,
+        }
     }
     /// Returns the index of the ending token that was used to create this node.
     /// **The index is *NON* inclusive.**
     pub fn to(&self) -> usize {
-        self.to
+        match &self {
+            Node::Array(a) => a.to,
+            Node::Bool(b) => b.to,
+            Node::Null(n) => n.to,
+            Node::Number(n) => n.to,
+            Node::Object(o) => o.to,
+            Node::String(s) => s.to,
+        }
     }
 }
 
 impl From<ArrayNode> for Node {
     fn from(arr: ArrayNode) -> Self {
-        Node {
-            from: arr.from,
-            to: arr.to,
-            specific: NodeSpecific::Array(arr),
-        }
+        Node::Array(arr)
     }
 }
 
 impl From<BoolNode> for Node {
     fn from(bl: BoolNode) -> Self {
-        Node {
-            from: bl.from,
-            to: bl.to,
-            specific: NodeSpecific::Bool(bl),
-        }
+        Node::Bool(bl)
     }
 }
 
 impl From<NullNode> for Node {
     fn from(null: NullNode) -> Self {
-        Node {
-            from: null.from,
-            to: null.to,
-            specific: NodeSpecific::Null(null),
-        }
+        Node::Null(null)
     }
 }
 
 impl From<NumberNode> for Node {
     fn from(num: NumberNode) -> Self {
-        Node {
-            from: num.from,
-            to: num.to,
-            specific: NodeSpecific::Number(num),
-        }
+        Node::Number(num)
     }
 }
 
 impl From<ObjectNode> for Node {
     fn from(obj: ObjectNode) -> Self {
-        Node {
-            from: obj.from,
-            to: obj.to,
-            specific: NodeSpecific::Object(obj),
-        }
+        Node::Object(obj)
     }
 }
 
 impl From<StringNode> for Node {
     fn from(str: StringNode) -> Self {
-        Node {
-            from: str.from,
-            to: str.to,
-            specific: NodeSpecific::String(str),
-        }
+        Node::String(str)
     }
 }
