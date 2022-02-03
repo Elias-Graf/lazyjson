@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn array_specific_nested() {
         let arr: Node = testing::create_arr(vec![
-            testing::create_arr(vec![testing::create_bool(false)]).into(),
+            testing::create_arr(vec![testing::create_bool(false).into()]).into(),
             testing::create_arr(vec![testing::create_null()]).into(),
         ])
         .into();

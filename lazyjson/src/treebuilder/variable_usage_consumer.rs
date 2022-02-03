@@ -28,7 +28,7 @@ pub fn variable_usage_consumer(
 mod tests {
     use crate::{
         tokenizer::Token,
-        treebuilder::{var_dict::VarDict, Node, TreebuilderErr},
+        treebuilder::{node::BoolNode, var_dict::VarDict, Node, TreebuilderErr},
     };
 
     use super::*;
@@ -77,11 +77,11 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         let mut var_dict = VarDict::new();
-        var_dict.insert("foo".into(), Node::new_bool(true, 0, 0));
+        var_dict.insert("foo".into(), BoolNode::new(0, true).into());
 
         assert_eq!(
             variable_usage_consumer(inp, &Rc::new(var_dict), &Config::DEFAULT),
-            Ok(Some(Node::new_bool(true, 0, 0))),
+            Ok(Some(BoolNode::new(0, true).into())),
         );
         assert_eq!(inp.next(), None);
     }

@@ -34,7 +34,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, ObjectSpecific},
+            node::{ArrayNode, BoolNode, ObjectSpecific},
             value_consumer::value_consumer,
             var_dict::VarDict,
         },
@@ -87,7 +87,7 @@ mod tests {
             .insert("code".to_string(), Node::new_num("123", 8, 9));
         downtown
             .entries
-            .insert("searchable".to_string(), Node::new_bool(true, 12, 13));
+            .insert("searchable".to_string(), BoolNode::new(12, true).into());
 
         downtown.var_dict =
             VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new()))));
@@ -101,7 +101,7 @@ mod tests {
             .insert("code".to_string(), Node::new_num("456", 22, 23));
         uptown
             .entries
-            .insert("searchable".to_string(), Node::new_bool(false, 26, 27));
+            .insert("searchable".to_string(), BoolNode::new(26, false).into());
 
         uptown.var_dict =
             VarDict::new_with_parent(&Rc::new(VarDict::new_with_parent(&Rc::new(VarDict::new()))));

@@ -48,7 +48,11 @@ mod tests {
 
     use crate::{
         tokenizer::Token,
-        treebuilder::{node::ArrayNode, testing, value_consumer, var_dict::VarDict},
+        treebuilder::{
+            node::{ArrayNode, BoolNode},
+            testing, value_consumer,
+            var_dict::VarDict,
+        },
     };
 
     use super::*;
@@ -79,7 +83,7 @@ mod tests {
                 &Rc::new(VarDict::new()),
                 &Config::DEFAULT,
             ),
-            Ok(Some(Node::new_bool(false, 0, 1)))
+            Ok(Some(BoolNode::new(0, false).into()))
         );
     }
 

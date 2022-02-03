@@ -121,7 +121,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::ArrayNode,
+            node::{ArrayNode, BoolNode},
             testing::{self, inp_from},
             Config,
         },
@@ -299,7 +299,7 @@ mod tests {
             13,
             vec![
                 ArrayNode::new(1, 3, Vec::new(), VarDict::new()).into(),
-                Node::new_bool(false, 4, 5),
+                BoolNode::new(4, false).into(),
                 Node::new_num("123", 6, 7),
                 Node::new_obj(HashMap::new(), 8, 10).into(),
                 Node::new_str("Hello, World!", 11, 12),

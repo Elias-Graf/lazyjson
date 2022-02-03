@@ -5,7 +5,11 @@ use crate::{
     treebuilder::error::TreebuilderErr,
 };
 
-use super::{config::Config, node::Node, var_dict::VarDict};
+use super::{
+    config::Config,
+    node::{BoolNode, Node},
+    var_dict::VarDict,
+};
 
 pub fn keyword_consumer(
     toks: &mut Peekable<TokenIndices>,
@@ -19,9 +23,9 @@ pub fn keyword_consumer(
     }
 
     let n = match t.val.as_str() {
-        "false" => Node::new_bool(false, i, i + 1),
+        "false" => BoolNode::new(i, false).into(),
         "null" => Node::new_null(i, i + 1),
-        "true" => Node::new_bool(true, i, i + 1),
+        "true" => BoolNode::new(i, true).into(),
         _ => return Ok(None),
     };
 
@@ -48,7 +52,10 @@ mod tests {
 
     #[test]
     pub fn consume_false() {
-        assert_correct_consume(Token::new_kwd("false", 0, 0), Node::new_bool(false, 0, 1));
+        assert_correct_consume(
+            Token::new_kwd("false", 0, 0),
+            BoolNode::new(0, false).into(),
+        );
     }
 
     #[test]
@@ -58,7 +65,7 @@ mod tests {
 
     #[test]
     pub fn consume_true() {
-        assert_correct_consume(Token::new_kwd("true", 0, 0), Node::new_bool(true, 0, 1));
+        assert_correct_consume(Token::new_kwd("true", 0, 0), BoolNode::new(0, true).into());
     }
 
     fn assert_correct_consume(tok: Token, exp: Node) {

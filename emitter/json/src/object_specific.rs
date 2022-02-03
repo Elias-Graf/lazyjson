@@ -43,6 +43,8 @@ mod tests {
 
     use lazyjson_core::treebuilder::Node;
 
+    use crate::testing::create_bool;
+
     use super::*;
 
     #[test]
@@ -56,7 +58,7 @@ mod tests {
     fn object_specific_not_empty() {
         let mut entries = HashMap::new();
         entries.insert(String::from("bar"), Node::new_null(0, 0));
-        entries.insert(String::from("foo"), Node::new_bool(false, 0, 0));
+        entries.insert(String::from("foo"), create_bool(false).into());
 
         let obj = Node::new_obj(entries, 0, 0);
 
@@ -72,7 +74,7 @@ mod tests {
     #[test]
     fn object_specific_nested() {
         let mut inner_1 = HashMap::new();
-        inner_1.insert(String::from("bar"), Node::new_bool(true, 0, 0));
+        inner_1.insert(String::from("bar"), create_bool(true).into());
 
         let mut inner_2 = HashMap::new();
         inner_2.insert(String::from("foo"), Node::new_null(0, 0));

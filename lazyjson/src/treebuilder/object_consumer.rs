@@ -145,7 +145,7 @@ fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderEr
 mod tests {
     use crate::{
         tokenizer::Token,
-        treebuilder::node::{ArrayNode, ObjectSpecific},
+        treebuilder::node::{ArrayNode, BoolNode, ObjectSpecific},
     };
 
     use super::*;
@@ -374,7 +374,7 @@ mod tests {
             "key_arr".into(),
             ArrayNode::new(3, 5, Vec::new(), VarDict::new()).into(),
         );
-        exp_entries.insert("key_kwd".to_string(), Node::new_bool(false, 8, 9));
+        exp_entries.insert("key_kwd".to_string(), BoolNode::new(8, false).into());
         exp_entries.insert("key_num".to_string(), Node::new_num("123", 12, 13));
         exp_entries.insert(
             "key_obj".to_string(),

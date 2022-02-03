@@ -6,8 +6,8 @@ use super::var_dict::VarDict;
 pub struct ArrayNode {
     pub entries: Vec<Node>,
     pub var_dict: VarDict,
-    from: usize,
-    to: usize,
+    pub from: usize,
+    pub to: usize,
 }
 
 impl ArrayNode {
@@ -22,8 +22,20 @@ impl ArrayNode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct BoolSpecific {
+pub struct BoolNode {
     pub val: bool,
+    pub from: usize,
+    pub to: usize,
+}
+
+impl BoolNode {
+    pub fn new(i: usize, val: bool) -> BoolNode {
+        BoolNode {
+            from: i,
+            to: i + 1,
+            val,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -61,7 +73,7 @@ pub struct StringSpecific {
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum NodeSpecific {
     Array(ArrayNode),
-    Bool(BoolSpecific),
+    Bool(BoolNode),
     Null(NullSpecific),
     Number(NumberSpecific),
     Object(ObjectSpecific),
@@ -78,13 +90,6 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new_bool(val: bool, from: usize, to: usize) -> Node {
-        Node {
-            specific: NodeSpecific::Bool(BoolSpecific { val }),
-            from,
-            to,
-        }
-    }
     pub fn new_null(from: usize, to: usize) -> Node {
         Node {
             specific: NodeSpecific::Null(NullSpecific {}),
@@ -135,6 +140,16 @@ impl From<ArrayNode> for Node {
             from: arr.from,
             to: arr.to,
             specific: NodeSpecific::Array(arr),
+        }
+    }
+}
+
+impl From<BoolNode> for Node {
+    fn from(bl: BoolNode) -> Self {
+        Node {
+            from: bl.from,
+            to: bl.to,
+            specific: NodeSpecific::Bool(bl),
         }
     }
 }
