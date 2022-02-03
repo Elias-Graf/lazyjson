@@ -124,7 +124,6 @@ mod tests {
                     0,
                     31,
                     vec![downtown.into(), uptown.into(), NullNode::new(29).into()],
-                    VarDict::new_with_parent(&Rc::new(VarDict::new())),
                 )
                 .into(),
             ))

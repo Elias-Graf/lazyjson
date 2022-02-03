@@ -393,7 +393,7 @@ mod tests {
         let mut exp_entries = HashMap::new();
         exp_entries.insert(
             "key_arr".into(),
-            ArrayNode::new(3, 5, Vec::new(), VarDict::new()).into(),
+            ArrayNode::new(3, 5, Vec::new()).into(),
         );
         exp_entries.insert("key_kwd".to_string(), BoolNode::new(8, false).into());
         exp_entries.insert(

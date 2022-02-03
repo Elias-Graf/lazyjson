@@ -68,7 +68,7 @@ mod tests {
         assert_eq!(
             value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(
-                ArrayNode::new(0, 2, Vec::new(), VarDict::new()).into()
+                ArrayNode::new(0, 2, Vec::new()).into()
             )),
         );
     }

@@ -5,16 +5,14 @@ use super::var_dict::VarDict;
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ArrayNode {
     pub entries: Vec<Node>,
-    pub var_dict: VarDict,
     pub from: usize,
     pub to: usize,
 }
 
 impl ArrayNode {
-    pub fn new(from: usize, to: usize, entries: Vec<Node>, var_dict: VarDict) -> ArrayNode {
+    pub fn new(from: usize, to: usize, entries: Vec<Node>) -> ArrayNode {
         ArrayNode {
             entries,
-            var_dict,
             from,
             to,
         }

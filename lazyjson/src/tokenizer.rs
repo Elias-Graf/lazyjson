@@ -185,7 +185,7 @@ mod tests {
     fn comments_not_allowed() {
         assert_eq!(
             tokenize("// TO-DO: IMPLEMENT: good code", &Config::DEFAULT),
-            Err(TokenizationErr::new_line_comments_not_allowed(0, 29)),
+            Err(TokenizationErr::new_line_comments_not_allowed(0, 30)),
         );
     }
 

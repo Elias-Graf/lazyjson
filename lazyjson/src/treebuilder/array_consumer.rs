@@ -20,9 +20,7 @@ pub fn array_consumer(
     };
 
     if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
-        return Ok(Some(
-            ArrayNode::new(opn_i, cls_i + 1, Vec::new(), VarDict::new()).into(),
-        ));
+        return Ok(Some(ArrayNode::new(opn_i, cls_i + 1, Vec::new()).into()));
     }
 
     let mut entries = Vec::new();
@@ -49,9 +47,7 @@ pub fn array_consumer(
         }
 
         if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
-            return Ok(Some(
-                ArrayNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
-            ));
+            return Ok(Some(ArrayNode::new(opn_i, cls_i + 1, entries).into()));
         }
 
         consume_val_sep(inp)?;
@@ -63,9 +59,7 @@ pub fn array_consumer(
                 return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
             }
 
-            return Ok(Some(
-                ArrayNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
-            ));
+            return Ok(Some(ArrayNode::new(opn_i, cls_i + 1, entries).into()));
         }
     }
 }
@@ -122,7 +116,9 @@ mod tests {
         tokenizer::Token,
         treebuilder::{
             node::{ArrayNode, BoolNode, NumberNode, ObjectNode, StringNode},
-            testing::{self, inp_from},
+            testing::{
+                self, inp_from, new_delimiter, new_equal_assignment_op, new_kwd, new_sep, new_str,
+            },
             Config,
         },
     };
@@ -207,17 +203,11 @@ mod tests {
         ];
         let inp = &mut toks.iter().enumerate().peekable();
 
-        let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArrayNode::new(
-            0,
-            4,
-            vec![NumberNode::new(1, "123".to_owned()).into()],
-            exp_var_dict,
-        );
-
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &config),
-            Ok(Some(exp_arr.into()))
+            Ok(Some(
+                ArrayNode::new(0, 4, vec![NumberNode::new(1, "123".to_owned()).into()]).into()
+            ))
         );
         // The closing bracket should be consumed
         assert_eq!(inp.next(), None);
@@ -255,9 +245,7 @@ mod tests {
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
-            Ok(Some(
-                ArrayNode::new(0, 2, Vec::new(), VarDict::new()).into()
-            ))
+            Ok(Some(ArrayNode::new(0, 2, Vec::new()).into()))
         );
     }
 
@@ -270,17 +258,11 @@ mod tests {
         ];
         let inp = &mut inp_from(&toks);
 
-        let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArrayNode::new(
-            0,
-            3,
-            vec![NumberNode::new(1, "123".to_owned()).into()],
-            exp_var_dict,
-        );
-
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(exp_arr.into()))
+            Ok(Some(
+                ArrayNode::new(0, 3, vec![NumberNode::new(1, "123".to_owned()).into()]).into()
+            ))
         );
     }
 
@@ -309,7 +291,7 @@ mod tests {
                 0,
                 13,
                 vec![
-                    ArrayNode::new(1, 3, Vec::new(), VarDict::new()).into(),
+                    ArrayNode::new(1, 3, Vec::new()).into(),
                     BoolNode::new(4, false).into(),
                     NumberNode::new(6, "123".to_owned()).into(),
                     ObjectNode::new(
@@ -323,7 +305,6 @@ mod tests {
                     .into(),
                     StringNode::new(11, "Hello, World!".to_owned()).into(),
                 ],
-                VarDict::new_with_parent(&Rc::new(VarDict::new())),
             )
             .into(),
         ));
@@ -331,61 +312,6 @@ mod tests {
         dbg!(&a, &b);
 
         assert_eq!(a, b);
-    }
-
-    #[test]
-    fn declare_variable() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_kwd("let", 0, 0),
-            Token::new_kwd("foo", 0, 0),
-            Token::new_equal_assignment_op(0),
-            Token::new_str("foo", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("bar", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
-
-        let mut exp_entries = Vec::new();
-        exp_entries.push(StringNode::new(6, "bar".to_owned()).into());
-
-        let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("foo".into(), StringNode::new(4, "foo".to_owned()).into());
-
-        let exp_arr = ArrayNode::new(0, 8, exp_entries, exp_var_dict);
-
-        assert_eq!(
-            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
-            Ok(Some(exp_arr.into()))
-        )
-    }
-
-    #[test]
-    fn declare_variable_with_trailing_sep() {
-        let mut config = Config::DEFAULT;
-        config.allow_trailing_commas = true;
-
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_kwd("let", 0, 0),
-            Token::new_kwd("foo", 0, 0),
-            Token::new_equal_assignment_op(0),
-            Token::new_str("foo", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
-
-        let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("foo".into(), StringNode::new(4, "foo".to_owned()).into());
-
-        let exp_arr = ArrayNode::new(0, 7, Vec::new(), exp_var_dict);
-
-        assert_eq!(
-            array_consumer(inp, &Rc::new(VarDict::new()), &config),
-            Ok(Some(exp_arr.into())),
-        )
     }
 
     #[test]
@@ -401,12 +327,7 @@ mod tests {
         var_dict.insert("foo".into(), NumberNode::new(0, "10".to_owned()).into());
         let var_dict = &Rc::new(var_dict);
 
-        let exp_arr = ArrayNode::new(
-            0,
-            3,
-            vec![NumberNode::new(0, "10".to_owned()).into()],
-            VarDict::new_with_parent(var_dict),
-        );
+        let exp_arr = ArrayNode::new(0, 3, vec![NumberNode::new(0, "10".to_owned()).into()]);
 
         assert_eq!(
             array_consumer(inp, var_dict, &Config::DEFAULT),
@@ -415,16 +336,16 @@ mod tests {
     }
 
     #[test]
-    fn use_variable_of_self() {
+    fn declare_and_use_variable() {
         let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_kwd("let", 0, 0),
-            Token::new_kwd("foo", 0, 0),
-            Token::new_equal_assignment_op(0),
-            Token::new_str("bar", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_kwd("foo", 0, 0),
-            Token::new_delimiter("]", 0, 0),
+            new_delimiter("["),
+            new_kwd("let"),
+            new_kwd("foo"),
+            new_equal_assignment_op(),
+            new_str("bar"),
+            new_sep(","),
+            new_kwd("foo"),
+            new_delimiter("]"),
         ];
         let inp = &mut testing::inp_from(&toks);
 
@@ -434,13 +355,36 @@ mod tests {
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(
-                ArrayNode::new(
-                    0,
-                    8,
-                    vec![StringNode::new(4, "bar".to_owned()).into()],
-                    exp_var_dict
-                )
-                .into()
+                ArrayNode::new(0, 8, vec![StringNode::new(4, "bar".to_owned()).into()]).into()
+            ))
+        )
+    }
+
+    #[test]
+    fn declare_and_use_variable_with_trailing_sep() {
+        let mut config = Config::DEFAULT;
+        config.allow_trailing_commas = true;
+
+        let toks = [
+            new_delimiter("["),
+            new_kwd("let"),
+            new_kwd("foo"),
+            new_equal_assignment_op(),
+            new_str("bar"),
+            new_sep(","),
+            new_kwd("foo"),
+            new_sep(","),
+            new_delimiter("]"),
+        ];
+        let inp = &mut testing::inp_from(&toks);
+
+        let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
+        exp_var_dict.insert("foo".into(), StringNode::new(4, "bar".to_owned()).into());
+
+        assert_eq!(
+            array_consumer(inp, &Rc::new(VarDict::new()), &config),
+            Ok(Some(
+                ArrayNode::new(0, 9, vec![StringNode::new(4, "bar".to_owned()).into()],).into()
             ))
         )
     }

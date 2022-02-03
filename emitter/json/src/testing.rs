@@ -6,7 +6,7 @@ use lazyjson_core::treebuilder::{
 };
 
 pub fn create_arr(toks: Vec<Node>) -> ArrayNode {
-    ArrayNode::new(0, 0, toks, VarDict::new())
+    ArrayNode::new(0, 0, toks)
 }
 
 pub fn create_bool(val: bool) -> BoolNode {
