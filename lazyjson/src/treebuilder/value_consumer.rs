@@ -49,7 +49,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode},
+            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode, StringNode},
             testing, value_consumer,
             var_dict::VarDict,
         },
@@ -123,16 +123,12 @@ mod tests {
     #[test]
     fn string() {
         let toks = [Token::new_str("hello world", 0, 0)];
+        let inp = &mut testing::inp_from(&toks);
 
-        let r = value_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap();
-        let e = Some(Node::new_str("hello world", 0, 1));
-
-        assert_eq!(r, e);
+        assert_eq!(
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(StringNode::new(0, "hello world".to_owned()).into()))
+        );
     }
 
     #[test]

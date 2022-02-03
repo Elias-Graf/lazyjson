@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use lazyjson_core::treebuilder::{
-    node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode},
+    node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode, StringNode},
     Node, VarDict,
 };
 
@@ -23,4 +23,8 @@ pub fn create_num(val: &str) -> NumberNode {
 
 pub fn create_obj(entries: HashMap<String, Node>) -> ObjectNode {
     ObjectNode::new(0, 0, entries, VarDict::new())
+}
+
+pub fn create_str(val: &str) -> StringNode {
+    StringNode::new(0, val.to_owned())
 }

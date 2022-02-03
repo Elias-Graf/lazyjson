@@ -144,7 +144,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NumberNode},
+            node::{ArrayNode, BoolNode, NumberNode, StringNode},
             testing,
         },
     };
@@ -232,7 +232,10 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut exp_entries = HashMap::new();
-        exp_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
+        exp_entries.insert(
+            "key".to_string(),
+            StringNode::new(3, "val".to_owned()).into(),
+        );
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -284,9 +287,12 @@ mod tests {
             Token::new_delimiter("}", 0, 0),
         ];
 
-        let mut e_entries = HashMap::new();
+        let mut e_entries: HashMap<String, Node> = HashMap::new();
 
-        e_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
+        e_entries.insert(
+            "key".to_string(),
+            StringNode::new(3, "val".to_owned()).into(),
+        );
 
         let r = object_consumer(
             &mut toks.iter().enumerate().peekable(),
@@ -332,7 +338,10 @@ mod tests {
         ];
 
         let mut exp_entries = HashMap::new();
-        exp_entries.insert("key".to_string(), Node::new_str("val", 3, 4));
+        exp_entries.insert(
+            "key".to_string(),
+            StringNode::new(3, "val".to_owned()).into(),
+        );
 
         assert_eq!(
             object_consumer(
@@ -405,7 +414,7 @@ mod tests {
         );
         exp_entries.insert(
             "key_str".to_string(),
-            Node::new_str("Hello, World!", 21, 22),
+            StringNode::new(21, "Hello, World!".to_owned()).into(),
         );
 
         assert_eq!(
@@ -439,10 +448,10 @@ mod tests {
         let inp = &mut inp.iter().enumerate().peekable();
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("foo".into(), Node::new_str("foo", 4, 5));
+        exp_var_dict.insert("foo".into(), StringNode::new(4, "foo".to_owned()).into());
 
         let mut exp_entries = HashMap::new();
-        exp_entries.insert("bar".into(), Node::new_str("bar", 8, 9));
+        exp_entries.insert("bar".into(), StringNode::new(8, "bar".to_owned()).into());
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),

@@ -42,7 +42,7 @@ impl VarDict {
 
 #[cfg(test)]
 mod tests {
-    use crate::treebuilder::node::NullNode;
+    use crate::treebuilder::node::{NullNode, StringNode};
 
     use super::*;
 
@@ -52,9 +52,15 @@ mod tests {
 
         assert_eq!(dict.get("foo"), None);
 
-        dict.insert("foo".to_string(), Node::new_str("bar", 0, 0));
+        dict.insert(
+            "foo".to_string(),
+            StringNode::new(0, "bar".to_owned()).into(),
+        );
 
-        assert_eq!(dict.get("foo"), Some(&Node::new_str("bar", 0, 0)));
+        assert_eq!(
+            dict.get("foo"),
+            Some(&StringNode::new(0, "bar".to_owned()).into())
+        );
     }
 
     #[test]
@@ -73,8 +79,14 @@ mod tests {
         parent_dict.insert("foo".to_string(), NullNode::new(0).into());
 
         let mut dict = VarDict::new_with_parent(&Rc::new(parent_dict));
-        dict.insert("foo".to_string(), Node::new_str("bar", 0, 0));
+        dict.insert(
+            "foo".to_string(),
+            StringNode::new(0, "bar".to_owned()).into(),
+        );
 
-        assert_eq!(dict.get("foo"), Some(&Node::new_str("bar", 0, 0)));
+        assert_eq!(
+            dict.get("foo"),
+            Some(&StringNode::new(0, "bar".to_owned()).into())
+        );
     }
 }

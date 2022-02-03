@@ -121,7 +121,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NumberNode, ObjectNode},
+            node::{ArrayNode, BoolNode, NumberNode, ObjectNode, StringNode},
             testing::{self, inp_from},
             Config,
         },
@@ -321,7 +321,7 @@ mod tests {
                         )))),
                     )
                     .into(),
-                    Node::new_str("Hello, World!", 11, 12),
+                    StringNode::new(11, "Hello, World!".to_owned()).into(),
                 ],
                 VarDict::new_with_parent(&Rc::new(VarDict::new())),
             )
@@ -348,10 +348,10 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut exp_entries = Vec::new();
-        exp_entries.push(Node::new_str("bar", 6, 7));
+        exp_entries.push(StringNode::new(6, "bar".to_owned()).into());
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("foo".into(), Node::new_str("foo", 4, 5));
+        exp_var_dict.insert("foo".into(), StringNode::new(4, "foo".to_owned()).into());
 
         let exp_arr = ArrayNode::new(0, 8, exp_entries, exp_var_dict);
 
@@ -378,7 +378,7 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("foo".into(), Node::new_str("foo", 4, 5));
+        exp_var_dict.insert("foo".into(), StringNode::new(4, "foo".to_owned()).into());
 
         let exp_arr = ArrayNode::new(0, 7, Vec::new(), exp_var_dict);
 
@@ -429,12 +429,18 @@ mod tests {
         let inp = &mut testing::inp_from(&toks);
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        exp_var_dict.insert("foo".into(), Node::new_str("bar", 4, 5).into());
+        exp_var_dict.insert("foo".into(), StringNode::new(4, "bar".to_owned()).into());
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(
-                ArrayNode::new(0, 8, vec![Node::new_str("bar", 4, 5)], exp_var_dict).into()
+                ArrayNode::new(
+                    0,
+                    8,
+                    vec![StringNode::new(4, "bar".to_owned()).into()],
+                    exp_var_dict
+                )
+                .into()
             ))
         )
     }

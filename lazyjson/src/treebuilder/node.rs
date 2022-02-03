@@ -92,8 +92,20 @@ impl ObjectNode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct StringSpecific {
+pub struct StringNode {
     pub val: String,
+    pub from: usize,
+    pub to: usize,
+}
+
+impl StringNode {
+    pub fn new(i: usize, val: String) -> StringNode {
+        StringNode {
+            val,
+            from: i,
+            to: i + 1,
+        }
+    }
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -103,7 +115,7 @@ pub enum NodeSpecific {
     Null(NullNode),
     Number(NumberNode),
     Object(ObjectNode),
-    String(StringSpecific),
+    String(StringNode),
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -116,16 +128,6 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new_str(val: &str, from: usize, to: usize) -> Node {
-        Node {
-            specific: NodeSpecific::String(StringSpecific {
-                val: val.to_string(),
-            }),
-            from,
-            to,
-        }
-    }
-
     /// Returns the index of the starting token that was used to create this node.
     /// **The index is inclusive.**
     pub fn from(&self) -> usize {
@@ -184,6 +186,16 @@ impl From<ObjectNode> for Node {
             from: obj.from,
             to: obj.to,
             specific: NodeSpecific::Object(obj),
+        }
+    }
+}
+
+impl From<StringNode> for Node {
+    fn from(str: StringNode) -> Self {
+        Node {
+            from: str.from,
+            to: str.to,
+            specific: NodeSpecific::String(str),
         }
     }
 }

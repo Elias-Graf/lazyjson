@@ -38,7 +38,7 @@ mod tests {
     use lazyjson_core::treebuilder::Node;
 
     use crate::{
-        testing::{create_arr, create_bool, create_null, create_num},
+        testing::{create_arr, create_bool, create_null, create_num, create_str},
         EmitJson,
     };
 
@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn array_specific_not_empty() {
-        let arr = create_arr(vec![create_num("0").into(), Node::new_str("foo", 0, 0)]);
+        let arr = create_arr(vec![create_num("0").into(), create_str("foo").into()]);
 
         assert_eq!(
             arr.emit_json(0),

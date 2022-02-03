@@ -34,7 +34,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode},
+            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode, StringNode},
             value_consumer::value_consumer,
             var_dict::VarDict,
         },
@@ -79,7 +79,10 @@ mod tests {
         ];
 
         let mut downtown_entries = HashMap::new();
-        downtown_entries.insert("name".to_string(), Node::new_str("Downtown", 4, 5));
+        downtown_entries.insert(
+            "name".to_string(),
+            StringNode::new(4, "Downtown".to_owned()).into(),
+        );
         downtown_entries.insert(
             "code".to_string(),
             NumberNode::new(8, "123".to_owned()).into(),
@@ -94,7 +97,10 @@ mod tests {
         );
 
         let mut uptown_entries = HashMap::new();
-        uptown_entries.insert("name".to_string(), Node::new_str("Uptown", 18, 19));
+        uptown_entries.insert(
+            "name".to_string(),
+            StringNode::new(18, "Uptown".to_owned()).into(),
+        );
         uptown_entries.insert(
             "code".to_string(),
             NumberNode::new(22, "456".to_owned()).into(),

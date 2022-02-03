@@ -2,7 +2,12 @@ use std::{iter::Peekable, rc::Rc};
 
 use crate::tokenizer::{TokenIndices, TokenType};
 
-use super::{config::Config, error::TreebuilderErr, node::Node, var_dict::VarDict};
+use super::{
+    config::Config,
+    error::TreebuilderErr,
+    node::{Node, StringNode},
+    var_dict::VarDict,
+};
 
 pub fn string_consumer(
     toks: &mut Peekable<TokenIndices>,
@@ -17,14 +22,14 @@ pub fn string_consumer(
         },
     };
 
-    Ok(Some(Node::new_str(&t.val, i, i + 1)))
+    Ok(Some(StringNode::new(i, t.val.clone()).into()))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
         tokenizer::Token,
-        treebuilder::{error::TreebuilderErr, node::Node, var_dict::VarDict, Config},
+        treebuilder::{error::TreebuilderErr, node::Node, testing, var_dict::VarDict, Config},
     };
 
     use super::*;
@@ -60,14 +65,11 @@ mod tests {
     #[test]
     fn string() {
         let toks = [Token::new_str("hello world", 0, 0)];
-        let r = string_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap();
-        let e = Some(Node::new_str("hello world", 0, 1));
+        let inp = &mut testing::inp_from(&toks);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            string_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            Ok(Some(StringNode::new(0, "hello world".to_owned()).into()))
+        );
     }
 }
