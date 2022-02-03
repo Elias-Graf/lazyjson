@@ -34,7 +34,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
-            node::{ArraySpecific, ObjectSpecific},
+            node::{ArrayNode, ObjectSpecific},
             value_consumer::value_consumer,
             var_dict::VarDict,
         },
@@ -113,7 +113,7 @@ mod tests {
                 &Config::DEFAULT,
             ),
             Ok(Some(
-                ArraySpecific::new(
+                ArrayNode::new(
                     0,
                     31,
                     vec![downtown.into(), uptown.into(), Node::new_null(29, 30)],

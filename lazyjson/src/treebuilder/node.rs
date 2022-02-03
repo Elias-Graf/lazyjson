@@ -3,16 +3,16 @@ use std::{collections::HashMap, fmt::Debug};
 use super::var_dict::VarDict;
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub struct ArraySpecific {
+pub struct ArrayNode {
     pub entries: Vec<Node>,
     pub var_dict: VarDict,
     from: usize,
     to: usize,
 }
 
-impl ArraySpecific {
-    pub fn new(from: usize, to: usize, entries: Vec<Node>, var_dict: VarDict) -> ArraySpecific {
-        ArraySpecific {
+impl ArrayNode {
+    pub fn new(from: usize, to: usize, entries: Vec<Node>, var_dict: VarDict) -> ArrayNode {
+        ArrayNode {
             entries,
             var_dict,
             from,
@@ -60,7 +60,7 @@ pub struct StringSpecific {
 
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum NodeSpecific {
-    Array(ArraySpecific),
+    Array(ArrayNode),
     Bool(BoolSpecific),
     Null(NullSpecific),
     Number(NumberSpecific),
@@ -78,18 +78,6 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new_arr(entries: Vec<Node>, from: usize, to: usize) -> Node {
-        Node {
-            specific: NodeSpecific::Array(ArraySpecific {
-                entries,
-                from,
-                to,
-                var_dict: VarDict::new(),
-            }),
-            from,
-            to,
-        }
-    }
     pub fn new_bool(val: bool, from: usize, to: usize) -> Node {
         Node {
             specific: NodeSpecific::Bool(BoolSpecific { val }),
@@ -141,8 +129,8 @@ impl Node {
     }
 }
 
-impl From<ArraySpecific> for Node {
-    fn from(arr: ArraySpecific) -> Self {
+impl From<ArrayNode> for Node {
+    fn from(arr: ArrayNode) -> Self {
         Node {
             from: arr.from,
             to: arr.to,

@@ -10,6 +10,9 @@ mod number_specific;
 mod object_specific;
 mod string_specific;
 
+#[cfg(test)]
+mod testing;
+
 impl EmitJson for Node {
     fn emit_json(&self, indent_level: usize) -> String {
         match &self.specific {

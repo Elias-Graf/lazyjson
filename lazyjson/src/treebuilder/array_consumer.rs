@@ -5,7 +5,7 @@ use crate::tokenizer::{Token, TokenIndices, TokenType};
 use crate::treebuilder::variable_definition_consumer::variable_definition_consumer;
 
 use super::config::Config;
-use super::node::ArraySpecific;
+use super::node::ArrayNode;
 use super::var_dict::VarDict;
 use super::{error::TreebuilderErr, node::Node, value_consumer::value_consumer};
 
@@ -21,7 +21,7 @@ pub fn array_consumer(
 
     if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
         return Ok(Some(
-            ArraySpecific::new(opn_i, cls_i + 1, Vec::new(), VarDict::new()).into(),
+            ArrayNode::new(opn_i, cls_i + 1, Vec::new(), VarDict::new()).into(),
         ));
     }
 
@@ -50,7 +50,7 @@ pub fn array_consumer(
 
         if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
             return Ok(Some(
-                ArraySpecific::new(opn_i, cls_i + 1, entries, var_dict).into(),
+                ArrayNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
             ));
         }
 
@@ -64,7 +64,7 @@ pub fn array_consumer(
             }
 
             return Ok(Some(
-                ArraySpecific::new(opn_i, cls_i + 1, entries, var_dict).into(),
+                ArrayNode::new(opn_i, cls_i + 1, entries, var_dict).into(),
             ));
         }
     }
@@ -121,6 +121,7 @@ mod tests {
     use crate::{
         tokenizer::Token,
         treebuilder::{
+            node::ArrayNode,
             testing::{self, inp_from},
             Config,
         },
@@ -207,7 +208,7 @@ mod tests {
         let inp = &mut toks.iter().enumerate().peekable();
 
         let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArraySpecific::new(0, 4, vec![Node::new_num("123", 1, 2)], exp_var_dict);
+        let exp_arr = ArrayNode::new(0, 4, vec![Node::new_num("123", 1, 2)], exp_var_dict);
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -245,15 +246,14 @@ mod tests {
             Token::new_delimiter("[", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
-        let r = array_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap();
-        let e = Some(Node::new_arr(Vec::new(), 0, 2));
+        let inp = &mut testing::inp_from(&toks);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            Ok(Some(
+                ArrayNode::new(0, 2, Vec::new(), VarDict::new()).into()
+            ))
+        );
     }
 
     #[test]
@@ -266,7 +266,7 @@ mod tests {
         let inp = &mut inp_from(&toks);
 
         let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArraySpecific::new(0, 3, vec![Node::new_num("123", 1, 2)], exp_var_dict);
+        let exp_arr = ArrayNode::new(0, 3, vec![Node::new_num("123", 1, 2)], exp_var_dict);
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -291,13 +291,14 @@ mod tests {
             Token::new_str("Hello, World!", 0, 0),
             Token::new_delimiter("]", 0, 0),
         ];
+        let inp = &mut testing::inp_from(&toks);
 
         let exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
-        let exp_arr = ArraySpecific::new(
+        let exp_arr = ArrayNode::new(
             0,
             13,
             vec![
-                Node::new_arr(Vec::new(), 1, 3),
+                ArrayNode::new(1, 3, Vec::new(), VarDict::new()).into(),
                 Node::new_bool(false, 4, 5),
                 Node::new_num("123", 6, 7),
                 Node::new_obj(HashMap::new(), 8, 10).into(),
@@ -307,11 +308,7 @@ mod tests {
         );
 
         assert_eq!(
-            array_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &Config::DEFAULT,
-            ),
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(exp_arr.into()))
         );
     }
@@ -336,7 +333,7 @@ mod tests {
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
         exp_var_dict.insert("foo".into(), Node::new_str("foo", 4, 5));
 
-        let exp_arr = ArraySpecific::new(0, 8, exp_entries, exp_var_dict);
+        let exp_arr = ArrayNode::new(0, 8, exp_entries, exp_var_dict);
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -363,7 +360,7 @@ mod tests {
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
         exp_var_dict.insert("foo".into(), Node::new_str("foo", 4, 5));
 
-        let exp_arr = ArraySpecific::new(0, 7, Vec::new(), exp_var_dict);
+        let exp_arr = ArrayNode::new(0, 7, Vec::new(), exp_var_dict);
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -384,7 +381,7 @@ mod tests {
         var_dict.insert("foo".into(), Node::new_num("10", 0, 0));
         let var_dict = &Rc::new(var_dict);
 
-        let exp_arr = ArraySpecific::new(
+        let exp_arr = ArrayNode::new(
             0,
             3,
             vec![Node::new_num("10", 0, 0)],
@@ -417,7 +414,7 @@ mod tests {
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(
-                ArraySpecific::new(0, 8, vec![Node::new_str("bar", 4, 5)], exp_var_dict).into()
+                ArrayNode::new(0, 8, vec![Node::new_str("bar", 4, 5)], exp_var_dict).into()
             ))
         )
     }

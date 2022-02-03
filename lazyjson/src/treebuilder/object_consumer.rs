@@ -143,7 +143,10 @@ fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderEr
 
 #[cfg(test)]
 mod tests {
-    use crate::{tokenizer::Token, treebuilder::node::ObjectSpecific};
+    use crate::{
+        tokenizer::Token,
+        treebuilder::node::{ArrayNode, ObjectSpecific},
+    };
 
     use super::*;
 
@@ -367,7 +370,10 @@ mod tests {
         ];
 
         let mut exp_entries = HashMap::new();
-        exp_entries.insert("key_arr".to_string(), Node::new_arr(Vec::new(), 3, 5));
+        exp_entries.insert(
+            "key_arr".into(),
+            ArrayNode::new(3, 5, Vec::new(), VarDict::new()).into(),
+        );
         exp_entries.insert("key_kwd".to_string(), Node::new_bool(false, 8, 9));
         exp_entries.insert("key_num".to_string(), Node::new_num("123", 12, 13));
         exp_entries.insert(
