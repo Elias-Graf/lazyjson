@@ -1,6 +1,6 @@
 use lazyjson_core::{
     tokenizer,
-    treebuilder::{self, error::TreebuilderErr},
+    treebuilder::{self},
 };
 use lazyjson_emitter_json::EmitJson;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -40,6 +40,14 @@ pub struct Error {
     pub msg: String,
 }
 
+#[wasm_bindgen]
+pub struct ParsingResult {
+    #[wasm_bindgen(getter_with_clone)]
+    pub tree: String,
+    #[wasm_bindgen(getter_with_clone)]
+    pub emit: String,
+}
+
 impl From<tokenizer::TokenizationErr> for Error {
     fn from(e: tokenizer::TokenizationErr) -> Self {
         // TODO: the tokenization error should offer a way to get a simple error
@@ -66,7 +74,7 @@ impl From<tokenizer::TokenizationErr> for Error {
 }
 
 #[wasm_bindgen]
-pub fn parse_and_emit(inp: &str, config: Config) -> Result<JsValue, JsValue> {
+pub fn parse_and_emit(inp: &str, config: Config) -> Result<ParsingResult, JsValue> {
     utils::init_panic_hook();
 
     let config: treebuilder::Config = config.into();
@@ -77,8 +85,11 @@ pub fn parse_and_emit(inp: &str, config: Config) -> Result<JsValue, JsValue> {
         treebuilder::build(&toks, &config).map_err(|e| JsValue::from_str(&e.msg(&toks, inp)))?;
 
     if let Some(tree) = tree {
-        return Ok(tree.emit_json(0).into());
-    } else {
-        return Err("no tree was returned - most likely a bug".into());
+        return Ok(ParsingResult {
+            emit: tree.emit_json(0),
+            tree: format!("{:#?}", tree),
+        });
     }
+
+    Err("no tree was returned - most likely a bug".into())
 }
