@@ -37,8 +37,6 @@ mod tests {
         let r = whitespace_consumer(inp).unwrap();
         let e = None;
 
-        dbg!(&inp);
-
         assert_eq!(r, e);
         assert_eq!(inp.next().unwrap(), &'1');
     }

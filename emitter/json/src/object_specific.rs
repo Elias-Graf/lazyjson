@@ -1,8 +1,8 @@
-use lazyjson_core::treebuilder::{node, Node};
+use lazyjson_core::treebuilder::{node::ObjectNode, Node};
 
 use crate::EmitJson;
 
-impl EmitJson for node::ObjectSpecific {
+impl EmitJson for ObjectNode {
     fn emit_json(&self, indent_level: usize) -> String {
         if self.entries.len() == 0 {
             return String::from("{}");
@@ -41,13 +41,13 @@ impl EmitJson for node::ObjectSpecific {
 mod tests {
     use std::collections::HashMap;
 
-    use lazyjson_core::treebuilder::Node;
+    use crate::testing::{create_bool, create_null, create_obj};
 
     use super::*;
 
     #[test]
     fn object_specific_empty() {
-        let obj = Node::new_obj(HashMap::new(), 0, 0);
+        let obj = create_obj(HashMap::new());
 
         assert_eq!(obj.emit_json(0), "{}");
     }
@@ -55,10 +55,10 @@ mod tests {
     #[test]
     fn object_specific_not_empty() {
         let mut entries = HashMap::new();
-        entries.insert(String::from("bar"), Node::new_null(0, 0));
-        entries.insert(String::from("foo"), Node::new_bool(false, 0, 0));
+        entries.insert(String::from("bar"), create_null().into());
+        entries.insert(String::from("foo"), create_bool(false).into());
 
-        let obj = Node::new_obj(entries, 0, 0);
+        let obj = create_obj(entries);
 
         assert_eq!(
             obj.emit_json(0),
@@ -72,19 +72,17 @@ mod tests {
     #[test]
     fn object_specific_nested() {
         let mut inner_1 = HashMap::new();
-        inner_1.insert(String::from("bar"), Node::new_bool(true, 0, 0));
+        inner_1.insert(String::from("bar"), create_bool(true).into());
 
         let mut inner_2 = HashMap::new();
-        inner_2.insert(String::from("foo"), Node::new_null(0, 0));
+        inner_2.insert(String::from("foo"), create_null().into());
 
         let mut outer = HashMap::new();
-        outer.insert(String::from("inner_1"), Node::new_obj(inner_1, 0, 0));
-        outer.insert(String::from("inner_2"), Node::new_obj(inner_2, 0, 0));
-
-        let obj = Node::new_obj(outer, 0, 0);
+        outer.insert(String::from("inner_1"), create_obj(inner_1).into());
+        outer.insert(String::from("inner_2"), create_obj(inner_2).into());
 
         assert_eq!(
-            obj.emit_json(0),
+            create_obj(outer).emit_json(0),
             "{
     \"inner_1\": {
         \"bar\": true

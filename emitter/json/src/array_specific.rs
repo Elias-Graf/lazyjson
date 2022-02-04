@@ -1,8 +1,8 @@
-use lazyjson_core::treebuilder::node;
+use lazyjson_core::treebuilder::node::ArrayNode;
 
 use crate::EmitJson;
 
-impl EmitJson for node::ArraySpecific {
+impl EmitJson for ArrayNode {
     fn emit_json(&self, indent_level: usize) -> String {
         if self.entries.len() == 0 {
             return String::from("[]");
@@ -37,22 +37,21 @@ impl EmitJson for node::ArraySpecific {
 mod tests {
     use lazyjson_core::treebuilder::Node;
 
-    use crate::EmitJson;
+    use crate::{
+        testing::{create_arr, create_bool, create_null, create_num, create_str},
+        EmitJson,
+    };
 
     #[test]
     fn array_specific_empty() {
-        let array = Node::new_arr(Vec::new(), 0, 0);
+        let arr: Node = create_arr(Vec::new()).into();
 
-        assert_eq!(array.emit_json(0), "[]");
+        assert_eq!(arr.emit_json(0), "[]");
     }
 
     #[test]
     fn array_specific_not_empty() {
-        let arr = Node::new_arr(
-            vec![Node::new_num("0", 0, 0), Node::new_str("foo", 0, 0)],
-            0,
-            0,
-        );
+        let arr = create_arr(vec![create_num("0").into(), create_str("foo").into()]);
 
         assert_eq!(
             arr.emit_json(0),
@@ -65,14 +64,11 @@ mod tests {
 
     #[test]
     fn array_specific_nested() {
-        let arr = Node::new_arr(
-            vec![
-                Node::new_arr(vec![Node::new_bool(false, 0, 0)], 0, 0),
-                Node::new_arr(vec![Node::new_null(0, 0)], 0, 0),
-            ],
-            0,
-            0,
-        );
+        let arr: Node = create_arr(vec![
+            create_arr(vec![create_bool(false).into()]).into(),
+            create_arr(vec![create_null().into()]).into(),
+        ])
+        .into();
 
         assert_eq!(
             arr.emit_json(0),

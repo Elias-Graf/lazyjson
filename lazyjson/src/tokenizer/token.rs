@@ -5,10 +5,15 @@ use std::fmt;
 #[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum TokenType {
     Delimiter,
+    /// Refers to the "normal assignment operator" ('='). In opposition to the
+    /// [`TokenType::JsonAssignmentOperator`]
+    EqualAssignmentOperator,
     KeywordLiteral,
     LineComment,
     NumberLiteral,
-    Operator,
+    /// Refers to the "jason assignment operator" (':'). In opposition to the
+    /// [`TokenType::EqualAssignmentOperator`].
+    JsonAssignmentOperator,
     Separator,
     StringLiteral,
     WhitespaceLiteral,
@@ -30,6 +35,15 @@ impl Token {
             to,
             typ: TokenType::Delimiter,
             val: val.to_string(),
+        }
+    }
+    /// Create a new token of the type [`TokenType::EqualAssignmentOperator`].
+    pub fn new_equal_assignment_op(idx: usize) -> Token {
+        Token {
+            from: idx,
+            to: idx + 1,
+            typ: TokenType::EqualAssignmentOperator,
+            val: "".into(),
         }
     }
     /// Create a new token of the type [`TokenType::KeywordLiteral`].
@@ -59,13 +73,13 @@ impl Token {
             val: val.into(),
         }
     }
-    /// Create a new token of the type [`TokenType::Operator`].
-    pub fn new_op(val: &str, from: usize, to: usize) -> Token {
+    /// Create a new token of the type [`TokenType::JsonAssignmentOperator`].
+    pub fn new_json_assignment_op(idx: usize) -> Token {
         Token {
-            from,
-            to,
-            typ: TokenType::Operator,
-            val: val.into(),
+            from: idx,
+            to: idx + 1,
+            typ: TokenType::JsonAssignmentOperator,
+            val: "".into(),
         }
     }
     /// Create a new token of the type [`TokenType::Separator`].

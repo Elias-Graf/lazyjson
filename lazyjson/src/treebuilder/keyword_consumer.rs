@@ -1,30 +1,32 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, rc::Rc};
 
 use crate::{
     tokenizer::{TokenIndices, TokenType},
     treebuilder::error::TreebuilderErr,
 };
 
-use super::{config::Config, node::Node};
+use super::{
+    config::Config,
+    node::{BoolNode, Node, NullNode},
+    var_dict::VarDict,
+};
 
 pub fn keyword_consumer(
     toks: &mut Peekable<TokenIndices>,
+    _: &Rc<VarDict>,
     _: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
-    let (i, t) = match toks.peek() {
-        None => return Err(TreebuilderErr::new_out_of_bounds()),
-        Some(r) => *r,
-    };
+    let &(i, t) = toks.peek().unwrap();
 
     if t.typ != TokenType::KeywordLiteral {
         return Ok(None);
     }
 
     let n = match t.val.as_str() {
-        "false" => Node::new_bool(false, i, i + 1),
-        "null" => Node::new_null(i, i + 1),
-        "true" => Node::new_bool(true, i, i + 1),
-        _ => return Err(TreebuilderErr::new_unknown_kwd(i)),
+        "false" => BoolNode::new(i, false).into(),
+        "null" => NullNode::new(i).into(),
+        "true" => BoolNode::new(i, true).into(),
+        _ => return Ok(None),
     };
 
     toks.next();
@@ -39,20 +41,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_input() {
-        let toks = [];
-        let r = keyword_consumer(&mut toks.iter().enumerate().peekable(), &Config::DEFAULT)
-            .unwrap_err();
-        let e = TreebuilderErr::new_out_of_bounds();
-
-        assert_eq!(r, e);
-    }
-
-    #[test]
     pub fn non_keyword() {
         let toks = [Token::new_num("123", 0, 0)];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
+        let r = keyword_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
 
         assert_eq!(r, None);
         assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("123", 0, 0)));
@@ -60,23 +52,26 @@ mod tests {
 
     #[test]
     pub fn consume_false() {
-        assert_correct_consume(Token::new_kwd("false", 0, 0), Node::new_bool(false, 0, 1));
+        assert_correct_consume(
+            Token::new_kwd("false", 0, 0),
+            BoolNode::new(0, false).into(),
+        );
     }
 
     #[test]
     pub fn consume_null() {
-        assert_correct_consume(Token::new_kwd("null", 0, 0), Node::new_null(0, 1));
+        assert_correct_consume(Token::new_kwd("null", 0, 0), NullNode::new(0).into());
     }
 
     #[test]
     pub fn consume_true() {
-        assert_correct_consume(Token::new_kwd("true", 0, 0), Node::new_bool(true, 0, 1));
+        assert_correct_consume(Token::new_kwd("true", 0, 0), BoolNode::new(0, true).into());
     }
 
     fn assert_correct_consume(tok: Token, exp: Node) {
         let toks = [tok];
         let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &Config::DEFAULT).unwrap();
+        let r = keyword_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
         let e = Some(exp);
 
         assert_eq!(r, e);

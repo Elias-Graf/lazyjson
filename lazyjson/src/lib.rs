@@ -1,4 +1,6 @@
-use treebuilder::{config::Config, node::Node};
+use std::rc::Rc;
+
+use treebuilder::{config::Config, node::Node, VarDict};
 
 pub mod emit;
 pub mod peak_while;
@@ -13,7 +15,11 @@ pub fn parse(inp: &str, config: &Config) -> Result<Option<Node>, String> {
         Ok(toks) => toks,
     };
 
-    let node = match treebuilder::value_consumer(&mut toks.iter().enumerate().peekable(), config) {
+    let node = match treebuilder::value_consumer(
+        &mut toks.iter().enumerate().peekable(),
+        &Rc::new(VarDict::new()),
+        config,
+    ) {
         Err(e) => return Err(e.msg(&toks, inp)),
         Ok(node) => node,
     };

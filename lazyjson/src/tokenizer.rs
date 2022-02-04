@@ -134,7 +134,7 @@ mod tests {
     #[test]
     fn operators() {
         let r = tokenize(":", &Config::DEFAULT).unwrap();
-        let e = [Token::new_op(":", 0, 1)];
+        let e = [Token::new_json_assignment_op(0)];
 
         assert_eq!(r, e);
     }
@@ -183,8 +183,23 @@ mod tests {
     #[test]
     fn comments_not_allowed() {
         assert_eq!(
-            tokenize("// TODO: IMPLEMENT: good code", &Config::DEFAULT),
-            Err(TokenizationErr::new_line_comments_not_allowed(0, 29)),
+            tokenize("// TO-DO: IMPLEMENT: good code", &Config::DEFAULT),
+            Err(TokenizationErr::new_line_comments_not_allowed(0, 30)),
+        );
+    }
+
+    #[test]
+    fn variable() {
+        assert_eq!(
+            tokenize("{let test = 10}", &Config::DEFAULT).unwrap(),
+            [
+                Token::new_delimiter("{", 0, 1),
+                Token::new_kwd("let", 1, 4),
+                Token::new_kwd("test", 5, 9),
+                Token::new_equal_assignment_op(10),
+                Token::new_num("10", 12, 14),
+                Token::new_delimiter("}", 14, 15),
+            ],
         );
     }
 
@@ -194,7 +209,7 @@ mod tests {
         config.allow_line_comments = true;
 
         assert_eq!(
-            tokenize("// TODO: IMPLEMENT: good code", &config),
+            tokenize("// TO-DO: IMPLEMENT: good code", &config),
             Ok(Vec::new())
         );
     }

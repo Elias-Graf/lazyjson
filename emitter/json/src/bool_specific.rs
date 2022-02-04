@@ -1,8 +1,8 @@
-use lazyjson_core::treebuilder::node;
+use lazyjson_core::treebuilder::node::BoolNode;
 
 use crate::EmitJson;
 
-impl EmitJson for node::BoolSpecific {
+impl EmitJson for BoolNode {
     fn emit_json(&self, _: usize) -> String {
         if self.val {
             return String::from("true");
@@ -14,21 +14,21 @@ impl EmitJson for node::BoolSpecific {
 
 #[cfg(test)]
 mod tests {
-    use lazyjson_core::treebuilder::Node;
+    use crate::testing::create_bool;
 
     use super::*;
 
     #[test]
     fn bool_specific_false() {
-        let n_false = Node::new_bool(false, 0, 0);
+        let bl_false = create_bool(false);
 
-        assert_eq!(n_false.emit_json(0), "false");
+        assert_eq!(bl_false.emit_json(0), "false");
     }
 
     #[test]
     fn bool_specific_true() {
-        let n_true = Node::new_bool(true, 0, 0);
+        let bl_false = create_bool(true);
 
-        assert_eq!(n_true.emit_json(0), "true");
+        assert_eq!(bl_false.emit_json(0), "true");
     }
 }

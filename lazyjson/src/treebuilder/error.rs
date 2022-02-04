@@ -7,12 +7,15 @@ use std::{
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TreebuilderErrTyp {
     NotAKey,
-    NotAnAssignment,
     NotASep,
     NotAVal,
+    // TODO: rename to NotJsonAssignment
+    NotAnAssignment,
+    NotEqualAssignment,
+    NotVariableName,
     OutOfBounds,
     TrailingSep,
-    UnknownKwd,
+    UndeclaredVariable,
     UnterminatedArr,
     UnterminatedObj,
 }
@@ -33,6 +36,14 @@ impl fmt::Display for TreebuilderErr {
 impl Error for TreebuilderErr {}
 
 impl TreebuilderErr {
+    /// Creates a new error of the typ [`TreebuilderErrTyp::ExpectedVariableName`].
+    pub fn new_not_var_name(i: usize) -> TreebuilderErr {
+        TreebuilderErr {
+            from: i,
+            to: i + 1,
+            typ: TreebuilderErrTyp::NotVariableName,
+        }
+    }
     /// Creates a new error of the typ [`TreebuilderErrTyp::NotAKey`].
     pub fn new_not_a_key(i: usize) -> TreebuilderErr {
         TreebuilderErr {
@@ -65,12 +76,27 @@ impl TreebuilderErr {
             to: i + 1,
         }
     }
+    pub fn new_not_equals_assignment(i: usize) -> TreebuilderErr {
+        TreebuilderErr {
+            typ: TreebuilderErrTyp::NotEqualAssignment,
+            from: i,
+            to: i + 1,
+        }
+    }
     /// Creates a new error of the typ [`TreebuilderErrTyp::TrailingSep`].
     pub fn new_trailing_sep(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::TrailingSep,
             from: i,
             to: i + 1,
+        }
+    }
+    /// Creates a new error of the typ [`TreebuilderErrTyp::UndeclaredVariable`].
+    pub fn new_undeclared_variable(i: usize) -> TreebuilderErr {
+        TreebuilderErr {
+            typ: TreebuilderErrTyp::UndeclaredVariable,
+            from: i,
+            to: i + i,
         }
     }
     /// Creates a new error of the typ [`TreebuilderErrTyp::OutOfBounds`].
@@ -81,28 +107,20 @@ impl TreebuilderErr {
             to: usize::MAX,
         }
     }
-    /// Creates a new error of the typ [`TreebuilderErrTyp::UnknownKwd`].
-    pub fn new_unknown_kwd(i: usize) -> TreebuilderErr {
+    /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedArr`].
+    pub fn new_unterminated_arr(i: usize) -> TreebuilderErr {
         TreebuilderErr {
-            typ: TreebuilderErrTyp::UnknownKwd,
+            typ: TreebuilderErrTyp::UnterminatedArr,
             from: i,
             to: i + 1,
         }
     }
-    /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedArr`].
-    pub fn new_unterminated_arr(from: usize, to: usize) -> TreebuilderErr {
-        TreebuilderErr {
-            typ: TreebuilderErrTyp::UnterminatedArr,
-            from,
-            to,
-        }
-    }
     /// Creates a new error of the typ [`TreebuilderErrTyp::UnterminatedObj`].
-    pub fn new_unterminated_obj(from: usize, to: usize) -> TreebuilderErr {
+    pub fn new_unterminated_obj(i: usize) -> TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UnterminatedObj,
-            from,
-            to,
+            from: i,
+            to: i + 1,
         }
     }
 
@@ -125,12 +143,15 @@ impl TreebuilderErr {
 
 fn get_verbal_hint(typ: TreebuilderErrTyp, err_tok: &Token) -> String {
     match typ {
+        TreebuilderErrTyp::NotVariableName => "expected a variable name".to_string(),
         TreebuilderErrTyp::UnterminatedArr => "array was not terminated".to_string(),
         TreebuilderErrTyp::UnterminatedObj => "object was not terminated".to_string(),
         TreebuilderErrTyp::TrailingSep => {
             "expected the next value or close (trailing separator not allowed)".to_string()
         }
-        TreebuilderErrTyp::UnknownKwd => format!("received an unknown keyword `{}`", err_tok.val),
+        TreebuilderErrTyp::UndeclaredVariable => {
+            format!("undeclared variable with name: `{}`", err_tok.val).into()
+        }
         TreebuilderErrTyp::NotAKey => format!(
             "expected a `{:?}` but received a `{:?}`",
             TokenType::StringLiteral,
@@ -147,6 +168,7 @@ fn get_verbal_hint(typ: TreebuilderErrTyp, err_tok: &Token) -> String {
         TreebuilderErrTyp::NotAnAssignment => {
             format!("expected a `:` but received a `{:?}`", err_tok.typ)
         }
+        TreebuilderErrTyp::NotEqualAssignment => "expected a assignment operator: '='".to_string(),
         TreebuilderErrTyp::OutOfBounds => {
             ">> INTERNAL ERROR - OUT OF BOUNDS << please submit a bug report with the JSON"
                 .to_string()
@@ -308,7 +330,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 14, 20),
-            Token::new_op(":", 20, 21),
+            Token::new_json_assignment_op(20),
             Token::new_sep(",", 22, 23),
             Token::new_delimiter("}", 32, 33),
         ];
@@ -348,7 +370,7 @@ mod tests {
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 2, 8),
-            Token::new_op(":", 8, 9),
+            Token::new_json_assignment_op(9),
             Token::new_kwd("false", 10, 15),
             Token::new_sep(",", 15, 16),
             Token::new_delimiter("}", 16, 17),
@@ -361,17 +383,6 @@ mod tests {
     }
 
     #[test]
-    fn unknown_kwd_msg() {
-        let inp = "nil";
-        let toks = [Token::new_kwd("nil", 0, 3)];
-
-        assert_eq!(
-            TreebuilderErr::new_unknown_kwd(0).msg(&toks, inp),
-            format!("received an unknown keyword `nil`, line: 1, char: 1\n\nnil\n^^^\n")
-        );
-    }
-
-    #[test]
     fn unterminated_arr_msg() {
         let inp = "[false";
         let toks = [
@@ -380,24 +391,24 @@ mod tests {
         ];
 
         assert_eq!(
-            TreebuilderErr::new_unterminated_arr(0, 2).msg(&toks, inp),
-            "array was not terminated, line: 1, char: 1\n\n[false\n^^^^^^\n"
+            TreebuilderErr::new_unterminated_arr(0).msg(&toks, inp),
+            "array was not terminated, line: 1, char: 1\n\n[false\n^\n"
         );
     }
 
     #[test]
     fn unterminated_obj_msg() {
-        let inp = "{\n    \"city\": \"London\"\n";
+        let inp_str = "{\n    \"city\": \"London\"\n";
         let toks = [
             Token::new_delimiter("{", 0, 1),
             Token::new_str("city", 6, 12),
-            Token::new_op(":", 12, 13),
+            Token::new_json_assignment_op(12),
             Token::new_str("London", 14, 22),
         ];
 
         assert_eq!(
-            TreebuilderErr::new_unterminated_obj(0, 4).msg(&toks, inp),
-            "object was not terminated, line: 1, char: 1\n\n{\n^\n    \"city\": \"London\"\n^^^^^^^^^^^^^^^^^^^^\n",
+            TreebuilderErr::new_unterminated_obj(3).msg(&toks, inp_str),
+            "object was not terminated, line: 2, char: 13\n\n    \"city\": \"London\"\n            ^^^^^^^^\n",
         )
     }
 }

@@ -1,8 +1,8 @@
-use lazyjson_core::treebuilder::node;
+use lazyjson_core::treebuilder::node::NullNode;
 
 use crate::EmitJson;
 
-impl EmitJson for node::NullSpecific {
+impl EmitJson for NullNode {
     fn emit_json(&self, _: usize) -> String {
         String::from("null")
     }
@@ -10,13 +10,13 @@ impl EmitJson for node::NullSpecific {
 
 #[cfg(test)]
 mod tests {
-    use lazyjson_core::treebuilder::Node;
+    use crate::testing::create_null;
 
     use super::*;
 
     #[test]
     fn null_specific() {
-        let null = Node::new_null(0, 0);
+        let null = create_null();
 
         assert_eq!(null.emit_json(0), "null");
     }
