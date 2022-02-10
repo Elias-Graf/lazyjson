@@ -5,8 +5,6 @@ use lazyjson_core::{
 use lazyjson_emitter_json::EmitJson;
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
-mod utils;
-
 #[wasm_bindgen]
 pub struct Config {
     pub allow_trailing_commas: bool,
@@ -33,7 +31,7 @@ impl Into<treebuilder::Config> for Config {
 }
 
 #[wasm_bindgen]
-pub struct Error {
+pub struct JazyjsonError {
     pub from: usize,
     pub to: usize,
     #[wasm_bindgen(getter_with_clone)]
@@ -48,7 +46,7 @@ pub struct ParsingResult {
     pub emit: String,
 }
 
-impl From<tokenizer::TokenizationErr> for Error {
+impl From<tokenizer::TokenizationErr> for JazyjsonError {
     fn from(e: tokenizer::TokenizationErr) -> Self {
         // TODO: the tokenization error should offer a way to get a simple error
         // message, that does not require and external arguments (like `inp`).
@@ -65,7 +63,7 @@ impl From<tokenizer::TokenizationErr> for Error {
             tokenizer::error::TokenizationErrTyp::UnterminatedStr => "unterminated string",
         };
 
-        Error {
+        JazyjsonError {
             from: e.from,
             msg: msg.to_string(),
             to: e.to,
@@ -75,11 +73,11 @@ impl From<tokenizer::TokenizationErr> for Error {
 
 #[wasm_bindgen]
 pub fn parse_and_emit(inp: &str, config: Config) -> Result<ParsingResult, JsValue> {
-    utils::init_panic_hook();
+    console_error_panic_hook::set_once();
 
     let config: treebuilder::Config = config.into();
 
-    let toks = tokenizer::tokenize(inp, &config).map_err(|e| Error::from(e))?;
+    let toks = tokenizer::tokenize(inp, &config).map_err(|e| JazyjsonError::from(e))?;
 
     let tree =
         treebuilder::build(&toks, &config).map_err(|e| JsValue::from_str(&e.msg(&toks, inp)))?;
