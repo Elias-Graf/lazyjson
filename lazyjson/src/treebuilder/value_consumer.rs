@@ -39,7 +39,7 @@ pub fn value_consumer(
         }
     }
 
-    Ok(None)
+    Err(TreebuilderErr::new_not_a_val(toks.peek().unwrap().0))
 }
 
 #[cfg(test)]
@@ -50,12 +50,24 @@ mod tests {
         tokenizer::Token,
         treebuilder::{
             node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode, StringNode},
-            testing, value_consumer,
+            testing::{self, inp_from, new_delimiter},
+            value_consumer,
             var_dict::VarDict,
         },
     };
 
     use super::*;
+
+    #[test]
+    fn not_a_value() {
+        let toks = [new_delimiter("}")];
+        let inp = &mut inp_from(&toks);
+
+        assert_eq!(
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Err(TreebuilderErr::new_not_a_val(0))
+        );
+    }
 
     #[test]
     fn array() {
