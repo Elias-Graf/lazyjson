@@ -1,7 +1,7 @@
-use std::iter::Peekable;
 use std::rc::Rc;
 
-use crate::tokenizer::{Token, TokenIndices, TokenType};
+use crate::queue::Queue;
+use crate::tokenizer::{Token, TokenType};
 use crate::treebuilder::variable_definition_consumer::variable_definition_consumer;
 
 use super::config::Config;
@@ -10,17 +10,18 @@ use super::var_dict::VarDict;
 use super::{error::TreebuilderErr, node::Node, value_consumer::value_consumer};
 
 pub fn array_consumer(
-    inp: &mut Peekable<TokenIndices>,
+    inp: &mut Queue<Token>,
     parent_var_dict: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
-    let (opn_i, _) = match consume_arr_opn(inp) {
-        None => return Ok(None),
-        Some(o) => o,
-    };
+    let opn_i = inp.idx();
 
-    if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
-        return Ok(Some(ArrayNode::new(opn_i, cls_i + 1, Vec::new()).into()));
+    if !consume_arr_opn(inp) {
+        return Ok(None);
+    }
+
+    if consume_arr_cls(inp, opn_i)? {
+        return Ok(Some(ArrayNode::new(opn_i, inp.idx(), Vec::new()).into()));
     }
 
     let mut entries = Vec::new();
@@ -46,54 +47,55 @@ pub fn array_consumer(
             entries.push(entry);
         }
 
-        if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
-            return Ok(Some(ArrayNode::new(opn_i, cls_i + 1, entries).into()));
+        if consume_arr_cls(inp, opn_i)? {
+            return Ok(Some(ArrayNode::new(opn_i, inp.idx(), entries).into()));
         }
 
         consume_val_sep(inp)?;
 
         // Check if the next token is an array close, if yes, we have a trailing
         // separator.
-        if let Some((cls_i, _)) = consume_arr_cls(inp, opn_i)? {
+        if consume_arr_cls(inp, opn_i)? {
             if !config.allow_trailing_commas {
-                return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
+                return Err(TreebuilderErr::new_trailing_sep(inp.idx() - 2));
             }
 
-            return Ok(Some(ArrayNode::new(opn_i, cls_i + 1, entries).into()));
+            return Ok(Some(ArrayNode::new(opn_i, inp.idx(), entries).into()));
         }
     }
 }
 
-fn consume_arr_opn<'a>(inp: &'a mut Peekable<TokenIndices>) -> Option<(usize, &'a Token)> {
-    let &(_, t) = inp.peek().unwrap();
+fn consume_arr_opn<'a>(inp: &'a mut Queue<Token>) -> bool {
+    let t = inp.peek().unwrap();
 
     if t.typ == TokenType::Delimiter && t.val == "[" {
-        return inp.next();
+        inp.next();
+
+        return true;
     }
 
-    None
+    false
 }
 
-fn consume_arr_cls<'a>(
-    inp: &'a mut Peekable<TokenIndices>,
-    opn_i: usize,
-) -> Result<Option<(usize, &'a Token)>, TreebuilderErr> {
-    let &(_, t) = inp
+fn consume_arr_cls<'a>(inp: &'a mut Queue<Token>, opn_i: usize) -> Result<bool, TreebuilderErr> {
+    let t = inp
         .peek()
         .ok_or(TreebuilderErr::new_unterminated_arr(opn_i))?;
 
     if t.typ == TokenType::Delimiter && t.val == "]" {
-        return Ok(inp.next());
+        inp.next();
+
+        return Ok(true);
     }
 
-    Ok(None)
+    Ok(false)
 }
 
-fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderErr> {
-    let &(i, t) = inp.peek().unwrap();
+fn consume_val_sep(inp: &mut Queue<Token>) -> Result<(), TreebuilderErr> {
+    let t = inp.peek().unwrap();
 
     if t.typ != TokenType::Separator || t.val != "," {
-        return Err(TreebuilderErr::new_not_a_sep(i));
+        return Err(TreebuilderErr::new_not_a_sep(inp.idx()));
     }
 
     inp.next();
@@ -112,80 +114,65 @@ fn get_last_tok_idx(entries: &Vec<Node>) -> usize {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{
-        tokenizer::Token,
-        treebuilder::{
-            node::{ArrayNode, BoolNode, NumberNode, ObjectNode, StringNode},
-            testing::{
-                self, inp_from, new_delimiter, new_equal_assignment_op, new_kwd, new_sep, new_str,
-            },
-            Config,
+    use crate::treebuilder::{
+        node::{ArrayNode, BoolNode, NumberNode, ObjectNode, StringNode},
+        testing::{
+            new_delimiter, new_equal_assignment_op, new_json_assignment_op, new_kwd, new_num,
+            new_sep, new_str,
         },
+        Config,
     };
 
     use super::*;
 
     #[test]
     fn non_array() {
-        let toks = [Token::new_num("0", 0, 0)];
-        let toks_iter = &mut toks.iter().enumerate().peekable();
+        let inp = &mut Queue::new(vec![new_num("0")]);
 
         assert_eq!(
-            array_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(None)
         );
-        assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("0", 0, 0)));
+        assert_eq!(inp.next(), Some(&new_num("0")));
     }
 
     #[test]
     fn unterminated() {
-        let toks = [Token::new_delimiter("[", 0, 0)];
+        let inp = &mut Queue::new(vec![new_delimiter("[")]);
 
         assert_eq!(
-            array_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &Config::DEFAULT,
-            ),
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
             Err(TreebuilderErr::new_unterminated_arr(0))
         );
     }
 
     #[test]
     fn missing_sep() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_num("1", 0, 0),
-            Token::new_num("1", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
+        let inp = &mut Queue::new(vec![
+            new_delimiter("["),
+            new_num("1"),
+            new_num("1"),
+            new_delimiter("]"),
+        ]);
 
         assert_eq!(
-            array_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &Config::DEFAULT,
-            ),
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Err(TreebuilderErr::new_not_a_sep(2))
         );
     }
 
     #[test]
     fn invalid_val() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_num("1", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_delimiter("]", 0, 0),
-        ];
+        let inp = &mut Queue::new(vec![
+            new_delimiter("["),
+            new_num("1"),
+            new_sep(","),
+            new_json_assignment_op(),
+            new_delimiter("]"),
+        ]);
 
         assert_eq!(
-            array_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &Config::DEFAULT,
-            ),
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
             Err(TreebuilderErr::new_not_a_val(3))
         );
     }
@@ -195,13 +182,12 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = true;
 
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_num("123", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut toks.iter().enumerate().peekable();
+        let inp = &mut Queue::new(vec![
+            new_delimiter("["),
+            new_num("123"),
+            new_sep(","),
+            new_delimiter("]"),
+        ]);
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -218,45 +204,32 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = false;
 
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_num("123", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
+        let inp = &mut Queue::new(vec![
+            new_delimiter("["),
+            new_num("123"),
+            new_sep(","),
+            new_delimiter("]"),
+        ]);
 
         assert_eq!(
-            array_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &config,
-            ),
+            array_consumer(inp, &Rc::new(VarDict::new()), &config),
             Err(TreebuilderErr::new_trailing_sep(2))
         );
     }
 
     #[test]
     fn empty() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("["), new_delimiter("]")]);
 
         assert_eq!(
-            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(ArrayNode::new(0, 2, Vec::new()).into()))
         );
     }
 
     #[test]
     fn single_entry() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_num("123", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("["), new_num("123"), new_delimiter("]")]);
 
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -268,52 +241,44 @@ mod tests {
 
     #[test]
     fn multiple_entries() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_delimiter("[", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_kwd("false", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_num("123", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("{", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("Hello, World!", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![
+            new_delimiter("["),
+            new_delimiter("["),
+            new_delimiter("]"),
+            new_sep(","),
+            new_kwd("false"),
+            new_sep(","),
+            new_num("123"),
+            new_sep(","),
+            new_delimiter("{"),
+            new_delimiter("}"),
+            new_sep(","),
+            new_str("Hello, World!"),
+            new_delimiter("]"),
+        ]);
 
-        let a = array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT);
-        let b = Ok(Some(
-            ArrayNode::new(
-                0,
-                13,
-                vec![
-                    ArrayNode::new(1, 3, Vec::new()).into(),
-                    BoolNode::new(4, false).into(),
-                    NumberNode::new(6, "123".to_owned()).into(),
-                    ObjectNode::new(8, 10, HashMap::new()).into(),
-                    StringNode::new(11, "Hello, World!".to_owned()).into(),
-                ],
-            )
-            .into(),
-        ));
-
-        dbg!(&a, &b);
-
-        assert_eq!(a, b);
+        assert_eq!(
+            array_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(
+                ArrayNode::new(
+                    0,
+                    13,
+                    vec![
+                        ArrayNode::new(1, 3, Vec::new()).into(),
+                        BoolNode::new(4, false).into(),
+                        NumberNode::new(6, "123".to_owned()).into(),
+                        ObjectNode::new(8, 10, HashMap::new()).into(),
+                        StringNode::new(11, "Hello, World!".to_owned()).into(),
+                    ],
+                )
+                .into(),
+            ))
+        );
     }
 
     #[test]
     fn use_variable_of_parent() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_kwd("foo", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("["), new_kwd("foo"), new_delimiter("]")]);
 
         let mut var_dict = VarDict::new();
         var_dict.insert("foo".into(), NumberNode::new(0, "10".to_owned()).into());
@@ -329,7 +294,7 @@ mod tests {
 
     #[test]
     fn declare_and_use_variable() {
-        let toks = [
+        let inp = &mut Queue::new(vec![
             new_delimiter("["),
             new_kwd("let"),
             new_kwd("foo"),
@@ -338,8 +303,7 @@ mod tests {
             new_sep(","),
             new_kwd("foo"),
             new_delimiter("]"),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        ]);
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
         exp_var_dict.insert("foo".into(), StringNode::new(4, "bar".to_owned()).into());
@@ -357,7 +321,7 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = true;
 
-        let toks = [
+        let inp = &mut Queue::new(vec![
             new_delimiter("["),
             new_kwd("let"),
             new_kwd("foo"),
@@ -367,8 +331,7 @@ mod tests {
             new_kwd("foo"),
             new_sep(","),
             new_delimiter("]"),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        ]);
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
         exp_var_dict.insert("foo".into(), StringNode::new(4, "bar".to_owned()).into());
@@ -376,7 +339,7 @@ mod tests {
         assert_eq!(
             array_consumer(inp, &Rc::new(VarDict::new()), &config),
             Ok(Some(
-                ArrayNode::new(0, 9, vec![StringNode::new(4, "bar".to_owned()).into()],).into()
+                ArrayNode::new(0, 9, vec![StringNode::new(4, "bar".to_owned()).into()]).into()
             ))
         )
     }

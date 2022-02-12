@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use queue::Queue;
 use treebuilder::{config::Config, node::Node, VarDict};
 
 pub mod emit;
@@ -8,6 +9,7 @@ pub mod tokenizer;
 pub mod treebuilder;
 
 mod char_queue;
+mod queue;
 
 pub fn parse(inp: &str, config: &Config) -> Result<Option<Node>, String> {
     let toks = match tokenizer::tokenize(inp, config) {
@@ -16,7 +18,8 @@ pub fn parse(inp: &str, config: &Config) -> Result<Option<Node>, String> {
     };
 
     let node = match treebuilder::value_consumer(
-        &mut toks.iter().enumerate().peekable(),
+        // TODO: figure out if this is possible to do without cloning
+        &mut Queue::new(toks.clone()),
         &Rc::new(VarDict::new()),
         config,
     ) {

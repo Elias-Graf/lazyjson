@@ -1,5 +1,6 @@
 use std::slice::SliceIndex;
 
+// TODO: replace with `Queue`.
 #[derive(Debug)]
 pub struct CharQueue {
     idx: usize,

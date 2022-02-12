@@ -96,7 +96,7 @@ impl TreebuilderErr {
         TreebuilderErr {
             typ: TreebuilderErrTyp::UndeclaredVariable,
             from: i,
-            to: i + i,
+            to: i + 1,
         }
     }
     /// Creates a new error of the typ [`TreebuilderErrTyp::OutOfBounds`].
@@ -410,5 +410,24 @@ mod tests {
             TreebuilderErr::new_unterminated_obj(3).msg(&toks, inp_str),
             "object was not terminated, line: 2, char: 13\n\n    \"city\": \"London\"\n            ^^^^^^^^\n",
         )
+    }
+
+    #[test]
+    fn undeclared_variable() {
+        let inp_str = "{\"foo\": bar}";
+        let toks = [
+            Token::new_delimiter("{", 0, 1),
+            Token::new_str("foo", 1, 6),
+            Token::new_json_assignment_op(6),
+            Token::new_kwd("bar", 8, 11),
+            Token::new_delimiter("}", 11, 12),
+        ];
+
+        dbg!(inp_str.len());
+
+        assert_eq!(
+            TreebuilderErr::new_undeclared_variable(3).msg(&toks, inp_str),
+            format!("undeclared variable with name: `bar`, line: 1, char: 9\n\n{{\"foo\": bar}}\n        ^^^\n")
+        );
     }
 }

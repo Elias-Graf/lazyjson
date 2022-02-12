@@ -1,6 +1,9 @@
-use std::{iter::Peekable, rc::Rc};
+use std::rc::Rc;
 
-use crate::tokenizer::{TokenIndices, TokenType};
+use crate::{
+    queue::Queue,
+    tokenizer::{Token, TokenType},
+};
 
 use super::{
     config::Config,
@@ -10,13 +13,14 @@ use super::{
 };
 
 pub fn string_consumer(
-    toks: &mut Peekable<TokenIndices>,
+    toks: &mut Queue<Token>,
     _: &Rc<VarDict>,
     _: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
-    let (i, t) = match toks.peek() {
+    let i = toks.idx();
+    let t = match toks.peek() {
         None => return Err(TreebuilderErr::new_out_of_bounds()),
-        Some((_, t)) => match t.typ {
+        Some(t) => match t.typ {
             TokenType::StringLiteral => toks.next().unwrap(),
             _ => return Ok(None),
         },
@@ -27,48 +31,42 @@ pub fn string_consumer(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        tokenizer::Token,
-        treebuilder::{error::TreebuilderErr, testing, var_dict::VarDict, Config},
+    use crate::treebuilder::{
+        error::TreebuilderErr,
+        testing::{new_kwd, new_str},
+        var_dict::VarDict,
+        Config,
     };
 
     use super::*;
 
     #[test]
     fn empty_input() {
-        let toks = [];
-        let r = string_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap_err();
-        let e = TreebuilderErr::new_out_of_bounds();
+        let mut toks = Queue::new(Vec::new());
 
-        assert_eq!(r, e);
-    }
-
-    #[test]
-    fn non_string() {
-        let toks = [Token::new_kwd("false", 0, 0)];
-        let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = string_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
-        let e = None;
-
-        assert_eq!(r, e);
         assert_eq!(
-            toks_iter.next().unwrap(),
-            (0, &Token::new_kwd("false", 0, 0))
+            string_consumer(&mut toks, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Err(TreebuilderErr::new_out_of_bounds())
         );
     }
 
     #[test]
-    fn string() {
-        let toks = [Token::new_str("hello world", 0, 0)];
-        let inp = &mut testing::inp_from(&toks);
+    fn non_string() {
+        let mut toks = Queue::new(vec![new_kwd("false")]);
 
         assert_eq!(
-            string_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            string_consumer(&mut toks, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(None)
+        );
+        assert_eq!(toks.next(), Some(&new_kwd("false")));
+    }
+
+    #[test]
+    fn string() {
+        let mut toks = Queue::new(vec![new_str("hello world")]);
+
+        assert_eq!(
+            string_consumer(&mut toks, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(StringNode::new(0, "hello world".to_owned()).into()))
         );
     }

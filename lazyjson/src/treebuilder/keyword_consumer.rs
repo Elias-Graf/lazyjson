@@ -1,7 +1,8 @@
-use std::{iter::Peekable, rc::Rc};
+use std::rc::Rc;
 
 use crate::{
-    tokenizer::{TokenIndices, TokenType},
+    queue::Queue,
+    tokenizer::{Token, TokenType},
     treebuilder::error::TreebuilderErr,
 };
 
@@ -12,11 +13,12 @@ use super::{
 };
 
 pub fn keyword_consumer(
-    toks: &mut Peekable<TokenIndices>,
+    toks: &mut Queue<Token>,
     _: &Rc<VarDict>,
     _: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
-    let &(i, t) = toks.peek().unwrap();
+    let i = toks.idx();
+    let t = toks.peek().unwrap();
 
     if t.typ != TokenType::KeywordLiteral {
         return Ok(None);
@@ -36,18 +38,22 @@ pub fn keyword_consumer(
 
 #[cfg(test)]
 mod tests {
-    use crate::{tokenizer::Token, treebuilder::Config};
+    use crate::{
+        tokenizer::Token,
+        treebuilder::{testing::new_num, Config},
+    };
 
     use super::*;
 
     #[test]
     pub fn non_keyword() {
-        let toks = [Token::new_num("123", 0, 0)];
-        let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
+        let inp = &mut Queue::new(vec![new_num("123")]);
 
-        assert_eq!(r, None);
-        assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("123", 0, 0)));
+        assert_eq!(
+            keyword_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(None)
+        );
+        assert_eq!(inp.next(), Some(&Token::new_num("123", 0, 0)));
     }
 
     #[test]
@@ -69,12 +75,12 @@ mod tests {
     }
 
     fn assert_correct_consume(tok: Token, exp: Node) {
-        let toks = [tok];
-        let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = keyword_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
-        let e = Some(exp);
+        let inp = &mut Queue::new(vec![tok]);
 
-        assert_eq!(r, e);
-        assert_eq!(toks_iter.next(), None);
+        assert_eq!(
+            keyword_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(exp))
+        );
+        assert_eq!(inp.next(), None);
     }
 }

@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::tokenizer::Token;
+use crate::{queue::Queue, tokenizer::Token};
 
 pub mod array_consumer;
 pub mod config;
@@ -32,7 +32,7 @@ mod variable_usage_consumer;
 
 pub fn build(inp: &[Token], config: &Config) -> Result<Option<Node>, TreebuilderErr> {
     value_consumer(
-        &mut inp.iter().enumerate().peekable(),
+        &mut Queue::new(Vec::from(inp)),
         &Rc::new(VarDict::new()),
         config,
     )
@@ -117,7 +117,7 @@ mod tests {
 
         assert_eq!(
             value_consumer(
-                &mut toks.iter().enumerate().peekable(),
+                &mut Queue::new(Vec::from(toks)),
                 &Rc::new(VarDict::new()),
                 &Config::DEFAULT,
             ),

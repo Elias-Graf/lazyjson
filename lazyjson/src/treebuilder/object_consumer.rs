@@ -6,25 +6,29 @@ use super::{
     var_dict::VarDict,
     variable_definition_consumer::variable_definition_consumer,
 };
-use crate::tokenizer::{Token, TokenIndices, TokenType};
-use std::{collections::HashMap, iter::Peekable, rc::Rc};
+use crate::{
+    queue::Queue,
+    tokenizer::{Token, TokenType},
+};
+use std::{collections::HashMap, rc::Rc};
 
 pub fn object_consumer(
-    inp: &mut Peekable<TokenIndices>,
+    inp: &mut Queue<Token>,
     var_dict: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
-    let (opn_i, _) = match consume_obj_opn(inp) {
-        None => return Ok(None),
-        Some(o) => o,
-    };
+    let opn_i = inp.idx();
+
+    if !consume_obj_opn(inp) {
+        return Ok(None);
+    }
 
     let mut entries = HashMap::new();
     let mut var_dict = VarDict::new_with_parent(var_dict);
 
     // Check if the object is immediately closed again (empty).
-    if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
-        return Ok(Some(ObjectNode::new(opn_i, cls_i + 1, entries).into()));
+    if consume_obj_cls(inp, opn_i)? {
+        return Ok(Some(ObjectNode::new(opn_i, inp.idx(), entries).into()));
     }
 
     loop {
@@ -34,7 +38,8 @@ pub fn object_consumer(
         {
             var_dict.insert(var_key, var_val);
         } else {
-            let (key_i, key) = consume_key(inp)?;
+            let key_i = inp.idx();
+            let key = consume_key(inp)?;
 
             consume_assignment(inp, key_i)?;
 
@@ -44,73 +49,70 @@ pub fn object_consumer(
                 &Rc::new(var_dict.clone()),
                 &Config::DEFAULT,
             )? {
-                None => return Err(TreebuilderErr::new_not_a_val(inp.next().unwrap().0)),
+                None => return Err(TreebuilderErr::new_not_a_val(inp.idx())),
                 Some(v) => v,
             };
             entries.insert(key, val);
         }
 
-        if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
-            return Ok(Some(ObjectNode::new(opn_i, cls_i + 1, entries).into()));
+        if consume_obj_cls(inp, opn_i)? {
+            return Ok(Some(ObjectNode::new(opn_i, inp.idx(), entries).into()));
         }
 
         consume_val_sep(inp)?;
 
         // Check if the next token is an object close, if yes, we have a trailing
         // separator.
-        if let Some((cls_i, _)) = consume_obj_cls(inp, opn_i)? {
+        if consume_obj_cls(inp, opn_i)? {
             if !config.allow_trailing_commas {
-                return Err(TreebuilderErr::new_trailing_sep(cls_i - 1));
+                return Err(TreebuilderErr::new_trailing_sep(inp.idx() - 2));
             }
 
-            return Ok(Some(ObjectNode::new(opn_i, cls_i + 1, entries).into()));
+            return Ok(Some(ObjectNode::new(opn_i, inp.idx(), entries).into()));
         }
     }
 }
 
 /// Returns the token if a object open delimiter was found.
-fn consume_obj_opn<'a>(inp: &'a mut Peekable<TokenIndices>) -> Option<(usize, &'a Token)> {
-    let &(_, t) = inp.peek().unwrap();
+fn consume_obj_opn<'a>(inp: &'a mut Queue<Token>) -> bool {
+    let t = inp.peek().unwrap();
 
     if t.typ == TokenType::Delimiter && t.val == "{" {
-        return inp.next();
+        inp.next();
+
+        return true;
     }
 
-    None
+    false
 }
 
-fn consume_obj_cls<'a>(
-    inp: &'a mut Peekable<TokenIndices>,
-    opn_i: usize,
-) -> Result<Option<(usize, &'a Token)>, TreebuilderErr> {
-    let &(_, t) = inp
+fn consume_obj_cls<'a>(inp: &'a mut Queue<Token>, opn_i: usize) -> Result<bool, TreebuilderErr> {
+    let t = inp
         .peek()
         .ok_or(TreebuilderErr::new_unterminated_obj(opn_i))?;
 
     if t.typ == TokenType::Delimiter && t.val == "}" {
-        return Ok(inp.next());
-    }
-
-    Ok(None)
-}
-
-fn consume_key<'a>(inp: &'a mut Peekable<TokenIndices>) -> Result<(usize, String), TreebuilderErr> {
-    let &(i, t) = inp.peek().unwrap();
-
-    if t.typ == TokenType::StringLiteral {
         inp.next();
 
-        return Ok((i, t.val.clone()));
+        return Ok(true);
     }
 
-    Err(TreebuilderErr::new_not_a_key(i))
+    Ok(false)
 }
 
-fn consume_assignment(
-    inp: &mut Peekable<TokenIndices>,
-    key_i: usize,
-) -> Result<(), TreebuilderErr> {
-    let (i, t) = inp
+fn consume_key<'a>(inp: &'a mut Queue<Token>) -> Result<String, TreebuilderErr> {
+    let t = inp.peek().unwrap();
+
+    if t.typ == TokenType::StringLiteral {
+        return Ok(inp.next().unwrap().val.clone());
+    }
+
+    Err(TreebuilderErr::new_not_a_key(inp.idx()))
+}
+
+fn consume_assignment(inp: &mut Queue<Token>, key_i: usize) -> Result<(), TreebuilderErr> {
+    let i = inp.idx();
+    let t = inp
         .next()
         .ok_or(TreebuilderErr::new_unterminated_obj(key_i))?;
 
@@ -121,11 +123,11 @@ fn consume_assignment(
     Ok(())
 }
 
-fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderErr> {
-    let &(i, t) = inp.peek().unwrap();
+fn consume_val_sep(inp: &mut Queue<Token>) -> Result<(), TreebuilderErr> {
+    let t = inp.peek().unwrap();
 
     if t.typ != TokenType::Separator || t.val != "," {
-        return Err(TreebuilderErr::new_not_a_sep(i));
+        return Err(TreebuilderErr::new_not_a_sep(inp.idx()));
     }
 
     inp.next();
@@ -135,14 +137,11 @@ fn consume_val_sep(inp: &mut Peekable<TokenIndices>) -> Result<(), TreebuilderEr
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        tokenizer::Token,
-        treebuilder::{
-            node::{ArrayNode, BoolNode, NumberNode, StringNode},
-            testing::{
-                self, new_delimiter, new_equal_assignment_op, new_json_assignment_op, new_kwd,
-                new_num, new_sep, new_str,
-            },
+    use crate::treebuilder::{
+        node::{ArrayNode, BoolNode, NumberNode, StringNode},
+        testing::{
+            new_delimiter, new_equal_assignment_op, new_json_assignment_op, new_kwd, new_num,
+            new_sep, new_str,
         },
     };
 
@@ -150,67 +149,55 @@ mod tests {
 
     #[test]
     fn non_object() {
-        let toks = [Token::new_num("123", 0, 0)];
-        let toks_iter = &mut toks.iter().enumerate().peekable();
-        let r = object_consumer(toks_iter, &Rc::new(VarDict::new()), &Config::DEFAULT).unwrap();
-        let e = None;
+        let inp = &mut Queue::new(vec![new_num("123")]);
 
-        assert_eq!(r, e);
-        assert_eq!(toks_iter.next().unwrap(), (0, &Token::new_num("123", 0, 0)));
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(None)
+        );
+        assert_eq!(inp.next(), Some(&new_num("123")));
     }
 
     #[test]
     fn unterminated() {
-        let toks = [Token::new_delimiter("{", 0, 0)];
-        let r = object_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap_err();
-        let e = TreebuilderErr::new_unterminated_obj(0);
+        let inp = &mut Queue::new(vec![new_delimiter("{")]);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Err(TreebuilderErr::new_unterminated_obj(0))
+        );
     }
 
     #[test]
     fn invalid_key() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_kwd("false", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("val", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let r = object_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap_err();
-        let e = TreebuilderErr::new_not_a_key(1);
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_kwd("false"),
+            new_json_assignment_op(),
+            new_str("val"),
+            new_delimiter("}"),
+        ]);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            Err(TreebuilderErr::new_not_a_key(1))
+        );
     }
 
     #[test]
     fn invalid_assignment() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("key", 0, 0),
-            Token::new_str(":", 0, 0),
-            Token::new_str("val", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let r = object_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap_err();
-        let e = TreebuilderErr::new_not_an_assignment(2);
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_str("key"),
+            new_str(":"),
+            new_str("val"),
+            new_delimiter("}"),
+        ]);
 
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            Err(TreebuilderErr::new_not_an_assignment(2))
+        );
     }
 
     #[test]
@@ -218,15 +205,14 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = true;
 
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("key", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("val", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_str("key"),
+            new_json_assignment_op(),
+            new_str("val"),
+            new_sep(","),
+            new_delimiter("}"),
+        ]);
 
         let mut exp_entries = HashMap::new();
         exp_entries.insert(
@@ -247,15 +233,14 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = false;
 
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("key", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("val", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_str("key"),
+            new_json_assignment_op(),
+            new_str("val"),
+            new_sep(","),
+            new_delimiter("}"),
+        ]);
 
         assert_eq!(
             object_consumer(inp, &Rc::new(VarDict::new()), &config),
@@ -265,16 +250,16 @@ mod tests {
 
     #[test]
     fn missing_sep() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("key1", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("val1", 0, 0),
-            Token::new_str("key2", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("val2", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_str("key1"),
+            new_json_assignment_op(),
+            new_str("val1"),
+            new_str("key2"),
+            new_json_assignment_op(),
+            new_str("val2"),
+            new_delimiter("}"),
+        ]);
 
         let mut e_entries: HashMap<String, Node> = HashMap::new();
 
@@ -283,40 +268,31 @@ mod tests {
             StringNode::new(3, "val".to_owned()).into(),
         );
 
-        let r = object_consumer(
-            &mut toks.iter().enumerate().peekable(),
-            &Rc::new(VarDict::new()),
-            &Config::DEFAULT,
-        )
-        .unwrap_err();
-        let e = TreebuilderErr::new_not_a_sep(4);
-
-        assert_eq!(r, e);
+        assert_eq!(
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Err(TreebuilderErr::new_not_a_sep(4))
+        );
     }
 
     #[test]
     fn empty() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("{"), new_delimiter("}")]);
 
         assert_eq!(
-            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
-            Ok(Some(ObjectNode::new(0, 2, HashMap::new(),).into(),))
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(ObjectNode::new(0, 2, HashMap::new()).into()))
         );
     }
 
     #[test]
     fn single_entry() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("key", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("val", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_str("key"),
+            new_json_assignment_op(),
+            new_str("val"),
+            new_delimiter("}"),
+        ]);
 
         let mut exp_entries = HashMap::new();
         exp_entries.insert(
@@ -325,43 +301,38 @@ mod tests {
         );
 
         assert_eq!(
-            object_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &Config::DEFAULT,
-            ),
+            object_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
             Ok(Some(ObjectNode::new(0, 5, exp_entries).into()))
         );
     }
 
     #[test]
     fn multiple_entries() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_str("key_arr", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_delimiter("[", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("key_kwd", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_kwd("false", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("key_num", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_num("123", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("key_obj", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_delimiter("{", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("key_str", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("Hello, World!", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_str("key_arr"),
+            new_json_assignment_op(),
+            new_delimiter("["),
+            new_delimiter("]"),
+            new_sep(","),
+            new_str("key_kwd"),
+            new_json_assignment_op(),
+            new_kwd("false"),
+            new_sep(","),
+            new_str("key_num"),
+            new_json_assignment_op(),
+            new_num("123"),
+            new_sep(","),
+            new_str("key_obj"),
+            new_json_assignment_op(),
+            new_delimiter("{"),
+            new_delimiter("}"),
+            new_sep(","),
+            new_str("key_str"),
+            new_json_assignment_op(),
+            new_str("Hello, World!"),
+            new_delimiter("}"),
+        ]);
 
         let mut exp_entries = HashMap::new();
         exp_entries.insert("key_arr".into(), ArrayNode::new(3, 5, Vec::new()).into());
@@ -387,19 +358,18 @@ mod tests {
 
     #[test]
     fn declare_variable() {
-        let inp = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_kwd("let", 0, 0),
-            Token::new_kwd("foo", 0, 0),
-            Token::new_equal_assignment_op(0),
-            Token::new_str("foo", 0, 0),
-            Token::new_sep(",", 0, 0),
-            Token::new_str("bar", 0, 0),
-            Token::new_json_assignment_op(0),
-            Token::new_str("bar", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let inp = &mut inp.iter().enumerate().peekable();
+        let inp = &mut Queue::new(vec![
+            new_delimiter("{"),
+            new_kwd("let"),
+            new_kwd("foo"),
+            new_equal_assignment_op(),
+            new_str("foo"),
+            new_sep(","),
+            new_str("bar"),
+            new_json_assignment_op(),
+            new_str("bar"),
+            new_delimiter("}"),
+        ]);
 
         let mut exp_var_dict = VarDict::new_with_parent(&Rc::new(VarDict::new()));
         exp_var_dict.insert("foo".into(), StringNode::new(4, "foo".to_owned()).into());
@@ -415,7 +385,7 @@ mod tests {
 
     #[test]
     pub fn declare_and_use_variable() {
-        let inp = [
+        let inp = &mut Queue::new(vec![
             new_delimiter("{"),
             new_kwd("let"),
             new_kwd("var"),
@@ -426,8 +396,7 @@ mod tests {
             new_json_assignment_op(),
             new_kwd("var"),
             new_delimiter("}"),
-        ];
-        let inp = &mut inp.iter().enumerate().peekable();
+        ]);
 
         let mut exp_entries = HashMap::new();
         exp_entries.insert("num".to_owned(), NumberNode::new(4, "10".to_owned()).into());
@@ -443,7 +412,7 @@ mod tests {
         let mut config = Config::DEFAULT;
         config.allow_trailing_commas = true;
 
-        let inp = [
+        let inp = &mut Queue::new(vec![
             new_delimiter("{"),
             new_kwd("let"),
             new_kwd("var"),
@@ -455,8 +424,7 @@ mod tests {
             new_kwd("var"),
             new_sep(","),
             new_delimiter("}"),
-        ];
-        let inp = &mut inp.iter().enumerate().peekable();
+        ]);
 
         let mut exp_entries = HashMap::new();
         exp_entries.insert("num".to_owned(), NumberNode::new(4, "10".to_owned()).into());

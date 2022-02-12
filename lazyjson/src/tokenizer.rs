@@ -1,6 +1,3 @@
-use std::iter::Enumerate;
-use std::slice::Iter;
-
 pub mod error;
 pub use error::TokenizationErr;
 
@@ -32,8 +29,6 @@ mod token;
 pub use token::{Token, TokenType};
 
 use crate::{char_queue::CharQueue, treebuilder::Config};
-
-pub type TokenIndices<'a> = Enumerate<Iter<'a, Token>>;
 
 type Consumer = dyn Fn(&mut CharQueue) -> Result<Option<Token>, TokenizationErr>;
 

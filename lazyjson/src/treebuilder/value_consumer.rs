@@ -1,6 +1,6 @@
-use std::{iter::Peekable, rc::Rc};
+use std::rc::Rc;
 
-use crate::tokenizer::TokenIndices;
+use crate::{queue::Queue, tokenizer::Token};
 
 use super::{
     array_consumer, error::TreebuilderErr, keyword_consumer, node::Node, number_consumer,
@@ -8,17 +8,14 @@ use super::{
     variable_usage_consumer::variable_usage_consumer, Config,
 };
 
-type Consumer = dyn Fn(
-    &mut Peekable<TokenIndices>,
-    &Rc<VarDict>,
-    &Config,
-) -> Result<Option<Node>, TreebuilderErr>;
+type Consumer =
+    dyn Fn(&mut Queue<Token>, &Rc<VarDict>, &Config) -> Result<Option<Node>, TreebuilderErr>;
 
 /// Consumes all possible forms of "value constellations". For example simple
 /// numbers (`1`), or arrays (`[1, 2]`), and so on. This consumer combines other
 /// "sub-consumers" to achieve this behavior.
 pub fn value_consumer(
-    toks: &mut Peekable<TokenIndices>,
+    toks: &mut Queue<Token>,
     var_dict: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
@@ -39,29 +36,25 @@ pub fn value_consumer(
         }
     }
 
-    Err(TreebuilderErr::new_not_a_val(toks.peek().unwrap().0))
+    Err(TreebuilderErr::new_not_a_val(toks.idx()))
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{
-        tokenizer::Token,
-        treebuilder::{
-            node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode, StringNode},
-            testing::{self, inp_from, new_delimiter},
-            value_consumer,
-            var_dict::VarDict,
-        },
+    use crate::treebuilder::{
+        node::{ArrayNode, BoolNode, NullNode, NumberNode, ObjectNode, StringNode},
+        testing::{new_delimiter, new_kwd, new_num, new_str},
+        value_consumer,
+        var_dict::VarDict,
     };
 
     use super::*;
 
     #[test]
     fn not_a_value() {
-        let toks = [new_delimiter("}")];
-        let inp = &mut inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("}")]);
 
         assert_eq!(
             value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -71,11 +64,7 @@ mod tests {
 
     #[test]
     fn array() {
-        let toks = [
-            Token::new_delimiter("[", 0, 0),
-            Token::new_delimiter("]", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("["), new_delimiter("]")]);
 
         assert_eq!(
             value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -85,47 +74,37 @@ mod tests {
 
     #[test]
     fn keyword() {
-        let toks = [Token::new_kwd("false", 0, 0)];
+        let inp = &mut Queue::new(vec![new_kwd("false")]);
 
         assert_eq!(
-            value_consumer(
-                &mut toks.iter().enumerate().peekable(),
-                &Rc::new(VarDict::new()),
-                &Config::DEFAULT,
-            ),
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(BoolNode::new(0, false).into()))
         );
     }
 
     #[test]
     fn number() {
-        let toks = [Token::new_num("123.456", 0, 0)];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_num("123.456")]);
 
         assert_eq!(
-            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
             Ok(Some(NumberNode::new(0, "123.456".to_owned()).into()))
         );
     }
 
     #[test]
     fn object() {
-        let toks = [
-            Token::new_delimiter("{", 0, 0),
-            Token::new_delimiter("}", 0, 0),
-        ];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_delimiter("{"), new_delimiter("}")]);
 
         assert_eq!(
-            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT,),
-            Ok(Some(ObjectNode::new(0, 2, HashMap::new(),).into()))
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Ok(Some(ObjectNode::new(0, 2, HashMap::new()).into()))
         );
     }
 
     #[test]
     fn string() {
-        let toks = [Token::new_str("hello world", 0, 0)];
-        let inp = &mut testing::inp_from(&toks);
+        let inp = &mut Queue::new(vec![new_str("hello world")]);
 
         assert_eq!(
             value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
@@ -135,8 +114,7 @@ mod tests {
 
     #[test]
     fn use_variable() {
-        let inp = [Token::new_kwd("variable", 0, 0)];
-        let inp = &mut inp.iter().enumerate().peekable();
+        let inp = &mut Queue::new(vec![new_kwd("variable")]);
 
         let mut var_dict = VarDict::new();
         var_dict.insert("variable".into(), NullNode::new(0).into());
