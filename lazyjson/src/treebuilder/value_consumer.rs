@@ -15,10 +15,14 @@ type Consumer =
 /// numbers (`1`), or arrays (`[1, 2]`), and so on. This consumer combines other
 /// "sub-consumers" to achieve this behavior.
 pub fn value_consumer(
-    toks: &mut Queue<Token>,
+    inp: &mut Queue<Token>,
     var_dict: &Rc<VarDict>,
     config: &Config,
 ) -> Result<Option<Node>, TreebuilderErr> {
+    if inp.peek().is_none() {
+        return Err(TreebuilderErr::new_not_a_val(inp.idx() - 1));
+    }
+
     let consumers: &[&Consumer] = &[
         &array_consumer,
         &keyword_consumer,
@@ -29,14 +33,14 @@ pub fn value_consumer(
     ];
 
     for consumer in consumers {
-        let res = consumer(toks, var_dict, config)?;
+        let res = consumer(inp, var_dict, config)?;
 
         if res.is_some() {
             return Ok(res);
         }
     }
 
-    Err(TreebuilderErr::new_not_a_val(toks.idx()))
+    Err(TreebuilderErr::new_not_a_val(inp.idx()))
 }
 
 #[cfg(test)]
@@ -51,6 +55,17 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn end_of_input() {
+        let inp = &mut Queue::new(vec![new_delimiter("[")]);
+        inp.next();
+
+        assert_eq!(
+            value_consumer(inp, &Rc::new(VarDict::new()), &Config::DEFAULT),
+            Err(TreebuilderErr::new_not_a_val(0)),
+        );
+    }
 
     #[test]
     fn not_a_value() {
