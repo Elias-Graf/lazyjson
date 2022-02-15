@@ -5,6 +5,7 @@ pub enum TokenizationErrTyp {
     LineCommentsNotAllowed,
     NoInp,
     OutOfBounds,
+    UnknownToken,
     UnterminatedStr,
 }
 
@@ -37,6 +38,13 @@ impl TokenizationErr {
             to: usize::MAX,
         }
     }
+    pub fn new_unknown_token(from: usize, to: usize) -> TokenizationErr {
+        TokenizationErr {
+            typ: TokenizationErrTyp::UnknownToken,
+            from,
+            to,
+        }
+    }
     pub fn new_unterminated_str(from: usize, to: usize) -> TokenizationErr {
         TokenizationErr {
             typ: TokenizationErrTyp::UnterminatedStr,
@@ -56,6 +64,9 @@ impl TokenizationErr {
             TokenizationErrTyp::NoInp => "tokenizer did not receive any input".to_string(),
             TokenizationErrTyp::OutOfBounds => {
                 "tried to tokenize outside of input bounds (internal error)".to_string()
+            }
+            TokenizationErrTyp::UnknownToken => {
+                format!("unknown token: `{}`", &inp[self.from..self.to])
             }
             TokenizationErrTyp::UnterminatedStr => format!(
                 "unterminated string from {}, to {} ('{}'<--)",

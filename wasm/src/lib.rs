@@ -62,15 +62,20 @@ impl From<tokenizer::TokenizationErr> for LazyjsonError {
         // message, that does not require and external arguments (like `inp`).
         let msg = match e.typ {
             tokenizer::error::TokenizationErrTyp::LineCommentsNotAllowed => {
-                "line comments not allowed"
+                "line comments not allowed".to_owned()
             }
-            tokenizer::error::TokenizationErrTyp::NoInp => "no input",
+            tokenizer::error::TokenizationErrTyp::NoInp => "no input".to_owned(),
             // TODO: investigate if this error really is necessary, or if out of
             // bounds can simply be prevented by having a solid test suite.
             tokenizer::error::TokenizationErrTyp::OutOfBounds => {
-                "out of bounds - almost certainly a bug"
+                "out of bounds - almost certainly a bug".to_owned()
             }
-            tokenizer::error::TokenizationErrTyp::UnterminatedStr => "unterminated string",
+            tokenizer::error::TokenizationErrTyp::UnknownToken => {
+                format!("unknown token, from: {}, to: {}", e.from, e.to)
+            }
+            tokenizer::error::TokenizationErrTyp::UnterminatedStr => {
+                "unterminated string".to_owned()
+            }
         };
 
         LazyjsonError {

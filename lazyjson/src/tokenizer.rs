@@ -1,32 +1,28 @@
 pub mod error;
-pub use error::TokenizationErr;
 
 mod delimiter_consumer;
-pub use delimiter_consumer::delimiter_consumer;
-
 mod keyword_literal_consumer;
-pub use keyword_literal_consumer::keyword_literal_consumer;
-
 mod line_comment_consumer;
-pub use line_comment_consumer::line_comment_consumer;
-
 mod number_literal_consumer;
-pub use number_literal_consumer::number_literal_consumer;
-
 mod operator_consumer;
-pub use operator_consumer::operator_consumer;
-
 mod separator_consumer;
-pub use separator_consumer::separator_consumer;
-
 mod string_literal_consumer;
-pub use string_literal_consumer::string_literal_consumer;
-
-mod whitespace_consumer;
-pub use whitespace_consumer::whitespace_consumer;
-
 mod token;
+mod unknown_token_consumer;
+mod whitespace_consumer;
+
+pub use error::TokenizationErr;
 pub use token::{Token, TokenType};
+
+use delimiter_consumer::delimiter_consumer;
+use keyword_literal_consumer::keyword_literal_consumer;
+use line_comment_consumer::line_comment_consumer;
+use number_literal_consumer::number_literal_consumer;
+use operator_consumer::operator_consumer;
+use separator_consumer::separator_consumer;
+use string_literal_consumer::string_literal_consumer;
+use unknown_token_consumer::unknown_token_consumer;
+use whitespace_consumer::whitespace_consumer;
 
 use crate::{char_queue::CharQueue, treebuilder::Config};
 
@@ -83,7 +79,7 @@ pub fn tokenize(inp: &str, config: &Config) -> Result<Vec<Token>, TokenizationEr
             }
         }
 
-        panic!("{:?} was not consumed", queue.peek());
+        unknown_token_consumer(&mut queue)?;
     }
 
     Ok(toks)
